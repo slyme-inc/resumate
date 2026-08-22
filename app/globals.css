@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #121a17;
+  --forest: #1b4f3e;
+  --forest-bright: #246b54;
+  --forest-soft: #dce8e2;
+  --gold: #c4a15a;
+  --paper: #f2eee6;
+  --surface: #fbf8f2;
+  --card: #fffdf8;
+  --line: #e3ddd1;
+  --line-strong: #c9c1b2;
+  --text: #1a211e;
+  --muted: #5c6561;
+  --faint: #8b928c;
+  --danger: #9b3a2f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-forest: var(--forest);
+  --color-forest-bright: var(--forest-bright);
+  --color-forest-soft: var(--forest-soft);
+  --color-gold: var(--gold);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-plus-jakarta);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-ibm-plex);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--text);
+  font-family: var(--font-plus-jakarta), "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.auth-canvas {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background-color: var(--paper);
+}
+
+.auth-canvas::before,
+.auth-canvas::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.auth-canvas::after {
+  inset: -56px;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(27, 79, 62, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 79, 62, 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: auth-grid-drift 32s linear infinite;
+}
+
+.auth-canvas::before {
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(
+      36% 28% at 50% 42%,
+      rgba(196, 161, 90, 0.1),
+      transparent 72%
+    ),
+    radial-gradient(
+      64% 52% at 50% 46%,
+      rgba(251, 248, 242, 0.92) 0%,
+      rgba(242, 238, 230, 0.4) 58%,
+      transparent 78%
+    );
+  animation: auth-grid-glow 18s ease-in-out infinite alternate;
+}
+
+.auth-canvas > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes auth-grid-drift {
+  to {
+    transform: translate3d(-56px, -56px, 0);
+  }
+}
+
+@keyframes auth-grid-glow {
+  from {
+    transform: translate3d(-3%, -2%, 0);
+    opacity: 0.88;
+  }
+  to {
+    transform: translate3d(4%, 3%, 0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-canvas::before,
+  .auth-canvas::after {
+    animation: none;
+  }
 }

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resumate — Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #121A17;
+      --forest: #1B4F3E;
+      --forest-bright: #246B54;
+      --forest-soft: #DCE8E2;
+      --gold: #C4A15A;
+      --gold-deep: #8F7333;
+      --gold-soft: #F3E8C8;
+      --terracotta: #A85A38;
+      --paper: #F2EEE6;
+      --surface: #FBF8F2;
+      --card: #FFFdf8;
+      --line: #E3DDD1;
+      --line-strong: #C9C1B2;
+      --text: #1A211E;
+      --muted: #5C6561;
+      --faint: #8B928C;
+      --success: #2D6A4F;
+      --warning: #9A7420;
+      --danger: #9B3A2F;
+      --info: #2C5F6E;
+      --shadow: 0 1px 2px rgba(18, 26, 23, 0.04), 0 12px 32px rgba(18, 26, 23, 0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", serif;
+      --sans: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.55;
+      letter-spacing: -0.011em;
+    }
+
+    .grain {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: 0.035;
+      z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 28px 96px; }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(16px);
+      background: rgba(242, 238, 230, 0.82);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--forest);
+      color: var(--paper);
+      display: grid;
+      place-items: center;
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 500;
+      font-style: italic;
+    }
+    .wordmark b {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+    .nav-links { display: flex; gap: 22px; flex-wrap: wrap; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--ink); }
+
+    .hero { padding: 72px 0 40px; }
+    .kicker {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--forest);
+      margin: 0 0 16px;
+    }
+    h1 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: clamp(42px, 7vw, 76px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      margin: 0 0 22px;
+      max-width: 16ch;
+    }
+    .lede {
+      max-width: 62ch;
+      font-size: 18px;
+      color: var(--muted);
+      margin: 0 0 36px;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    section { padding: 56px 0 8px; }
+    h2 {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 34px;
+      letter-spacing: -0.025em;
+      margin: 0 0 10px;
+    }
+    .section-lead { color: var(--muted); max-width: 68ch; margin: 0 0 32px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .swatch {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: var(--card);
+    }
+    .swatch .chip { height: 92px; }
+    .swatch .meta { padding: 12px 14px 14px; }
+    .swatch .name { font-weight: 600; font-size: 13px; }
+    .swatch .hex {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .swatch .use { font-size: 12px; color: var(--faint); margin-top: 6px; }
+
+    .type-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 20px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .type-row:last-child { border-bottom: 0; }
+    .type-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .t-display { font-family: var(--serif); font-size: 48px; line-height: 1.05; letter-spacing: -0.03em; }
+    .t-title { font-family: var(--serif); font-size: 28px; letter-spacing: -0.025em; }
+    .t-ui { font-size: 16px; font-weight: 500; }
+    .t-body { font-size: 15px; color: var(--muted); }
+    .t-mono { font-family: var(--mono); font-size: 13px; }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button, .btn {
+      font-family: var(--sans);
+      border: 0;
+      cursor: default;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .btn-primary {
+      background: var(--forest);
+      color: #F6F3EC;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-size: 14px;
+      border: 1px solid var(--line-strong);
+    }
+    .btn-ghost {
+      background: var(--forest-soft);
+      color: var(--forest);
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .btn-gold {
+      background: var(--gold);
+      color: #1A160C;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .job {
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .score {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(var(--gold) 0 86%, var(--line) 86% 100%);
+      position: relative;
+    }
+    .score::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: var(--card);
+    }
+    .score span {
+      position: relative;
+      z-index: 1;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .job h4 { margin: 0 0 4px; font-size: 16px; }
+    .job .co { color: var(--muted); font-size: 13px; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--forest-soft);
+      color: var(--forest);
+    }
+    .tag.warn { background: var(--gold-soft); color: var(--gold-deep); }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      overflow: hidden;
+    }
+    .pane { padding: 20px 22px; min-height: 220px; }
+    .pane + .pane { border-left: 1px solid var(--line); }
+    .pane h4 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .diff { font-size: 13.5px; line-height: 1.65; }
+    .add { background: #E4F0E8; color: #1B4F3E; border-radius: 3px; padding: 0 3px; }
+    .keep { color: var(--text); }
+
+    .upload {
+      border: 1.5px dashed var(--line-strong);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      background: var(--surface);
+    }
+    .upload strong { display: block; margin: 8px 0 4px; }
+    .upload span { color: var(--muted); font-size: 13px; }
+
+    .dark {
+      background: #0E1412;
+      color: #E8E4DB;
+      border-color: #24302B;
+    }
+    .dark .card, .dark .swatch, .dark .upload { background: #151C19; border-color: #24302B; box-shadow: none; }
+    .dark h2, .dark h3, .dark h4, .dark .wordmark b { color: #E8E4DB; }
+    .dark .section-lead, .dark .card p, .dark .co, .dark .lede { color: #9AA39D; }
+    .dark .pill { background: #151C19; border-color: #24302B; color: #9AA39D; }
+    .dark .score::after { background: #151C19; }
+    .dark .tag { background: #1E332B; color: #B7D4C6; }
+    .dark .pane + .pane { border-left-color: #24302B; }
+    .dark .add { background: #1E332B; color: #B7D4C6; }
+    .dark .keep { color: #E8E4DB; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+    }
+
+    footer {
+      margin-top: 72px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      .grid-3, .grid-2, .grid-4, .grid-5, .split, .job, .type-row { grid-template-columns: 1fr; }
+      .job { justify-items: start; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <nav>
+    <div class="nav-inner">
+      <a class="wordmark" href="#top">
+        <span class="mark">R</span>
+        <b>Resumate</b>
+      </a>
+      <div class="nav-links">
+        <a href="#principles">Principles</a>
+        <a href="#color">Color</a>
+        <a href="#type">Type</a>
+        <a href="#ui">UI</a>
+        <a href="#product">Product</a>
+        <a href="#tokens">Tokens</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrap" id="top">
+    <header class="hero">
+      <p class="kicker">Design scheme · v0.1 · for review</p>
+      <h1>Quiet confidence for a serious job search.</h1>
+      <p class="lede">
+        Resumate should feel like a senior recruiter’s desk, not a consumer job board.
+        Warm paper, precise ink, one decisive green, and gold reserved for match.
+        Professional, credible, modern — never loud.
+      </p>
+      <div class="meta-row">
+        <span class="pill">Light-first</span>
+        <span class="pill">Editorial serif + UI sans</span>
+        <span class="pill">Forest · Paper · Gold</span>
+        <span class="pill">Dark mode supported</span>
+      </div>
+    </header>
+
+    <section id="principles">
+      <h2>Principles</h2>
+      <p class="section-lead">These constrain every later screen. If a component fights them, the component loses.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Trust before delight</h3>
+          <p>People upload a résumé. The UI should look like it can keep a secret and give an honest score — no neon, no mascots, no purple SaaS default.</p>
+        </article>
+        <article class="card">
+          <h3>One accent, used sparingly</h3>
+          <p>Forest is the brand and the action color. Gold is only for match quality. Terracotta is rare: tailor / caution. Everything else stays paper and ink.</p>
+        </article>
+        <article class="card">
+          <h3>Readable like a document</h3>
+          <p>Headlines can be literary. Body copy and job data stay crisp and slightly tight. Scores, keywords, and file names live in mono.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="color">
+      <h2>Color</h2>
+      <p class="section-lead">
+        Warm ivory instead of sterile gray. Forest instead of LinkedIn blue.
+        Gold instead of traffic-light green for the thing that matters most: fit.
+      </p>
+      <div class="grid-5">
+        <div class="swatch">
+          <div class="chip" style="background:#1B4F3E"></div>
+          <div class="meta"><div class="name">Forest</div><div class="hex">#1B4F3E</div><div class="use">Primary actions, logo, links</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#121A17"></div>
+          <div class="meta"><div class="name">Ink</div><div class="hex">#121A17</div><div class="use">Headlines, dark surfaces</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#C4A15A"></div>
+          <div class="meta"><div class="name">Match gold</div><div class="hex">#C4A15A</div><div class="use">Scores, highlights only</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#F2EEE6"></div>
+          <div class="meta"><div class="name">Paper</div><div class="hex">#F2EEE6</div><div class="use">App canvas</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#A85A38"></div>
+          <div class="meta"><div class="name">Terracotta</div><div class="hex">#A85A38</div><div class="use">Tailor / caution, rare</div></div>
+        </div>
+      </div>
+
+      <div class="grid-4" style="margin-top:12px">
+        <div class="swatch">
+          <div class="chip" style="background:#FBF8F2"></div>
+          <div class="meta"><div class="name">Surface</div><div class="hex">#FBF8F2</div><div class="use">Raised panels</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FFFdf8"></div>
+          <div class="meta"><div class="name">Card</div><div class="hex">#FFFDF8</div><div class="use">Job cards, dialogs</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#E3DDD1"></div>
+          <div class="meta"><div class="name">Line</div><div class="hex">#E3DDD1</div><div class="use">Hairlines, dividers</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#5C6561"></div>
+          <div class="meta"><div class="name">Muted</div><div class="hex">#5C6561</div><div class="use">Secondary text</div></div>
+        </div>
+      </div>
+
+      <div class="grid-4" style="margin-top:12px">
+        <div class="swatch">
+          <div class="chip" style="background:#2D6A4F"></div>
+          <div class="meta"><div class="name">Success</div><div class="hex">#2D6A4F</div><div class="use">Applied, saved, strong overlap</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#9A7420"></div>
+          <div class="meta"><div class="name">Warning</div><div class="hex">#9A7420</div><div class="use">Gaps in the résumé</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#9B3A2F"></div>
+          <div class="meta"><div class="name">Danger</div><div class="hex">#9B3A2F</div><div class="use">Destructive, errors</div></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#2C5F6E"></div>
+          <div class="meta"><div class="name">Info</div><div class="hex">#2C5F6E</div><div class="use">Source, scrape status</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="type">
+      <h2>Type</h2>
+      <p class="section-lead">
+        Three families, three jobs. Newsreader for voice. Plus Jakarta Sans for the product.
+        IBM Plex Mono for anything that should look like data.
+      </p>
+      <div class="card">
+        <div class="type-row">
+          <div class="type-meta">Display<br />Newsreader 48 / 500</div>
+          <div class="t-display">Match the role. Keep the truth.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">Title<br />Newsreader 28 / 500</div>
+          <div class="t-title">Senior Product Designer · Stripe</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">UI<br />Plus Jakarta Sans 16 / 500</div>
+          <div class="t-ui">Upload résumé · Find matches · Tailor &amp; apply</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">Body<br />Plus Jakarta Sans 15 / 400</div>
+          <div class="t-body">We score each posting against your experience, then show the gaps before you apply. Tailoring edits language — it does not invent employment.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">Data<br />IBM Plex Mono 13 / 500</div>
+          <div class="t-mono">86 · MATCH · PDF · 248 KB · scraped 2m ago</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ui">
+      <h2>UI language</h2>
+      <p class="section-lead">14px radius, hairline borders, a soft paper shadow. Buttons are slightly squared — confident, not bubbly.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Buttons</h3>
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn-primary">Find matches</button>
+            <button class="btn-secondary">Upload résumé</button>
+            <button class="btn-ghost">Save role</button>
+            <button class="btn-gold">Tailor résumé</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Radius &amp; space</h3>
+          <p style="margin-top:10px">Radius 8 / 14. Spacing on a 4px grid: 8, 12, 16, 24, 32, 48. Cards use a faint dual shadow, never heavy drop shadows. Hairlines are warm, not cool gray.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="product">
+      <h2>Product frames</h2>
+      <p class="section-lead">How the scheme behaves on the three core moments: upload, rank, tailor.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>1 · Upload</h3>
+          <div class="upload" style="margin-top:16px">
+            <div class="mark" style="margin:0 auto">R</div>
+            <strong>Drop your résumé</strong>
+            <span>PDF or DOCX · we extract skills, roles, and dates</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>2 · Ranked match</h3>
+          <div class="job" style="margin-top:16px">
+            <div class="score" aria-label="Match score 86"><span>86</span></div>
+            <div>
+              <h4>Staff Product Engineer</h4>
+              <div class="co">Notion · San Francisco · Remote OK</div>
+              <div class="tags">
+                <span class="tag">React</span>
+                <span class="tag">Systems</span>
+                <span class="tag warn">Missing: GraphQL</span>
+              </div>
+            </div>
+            <button class="btn-secondary">Open JD</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card split" style="margin-top:16px; padding:0">
+        <div class="pane">
+          <h4>Job description</h4>
+          <div class="diff">
+            Own the <span class="add">design system</span> and ship accessible product surfaces.
+            Partner with research. 6+ years in product engineering.
+          </div>
+        </div>
+        <div class="pane">
+          <h4>Tailored résumé</h4>
+          <div class="diff">
+            <span class="keep">Led the component library used by 14 squads.</span>
+            Added <span class="add">design-system governance and a11y review</span> without inventing a new job.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Dark mode</h2>
+      <p class="section-lead">Same tokens, inverted ground. Forest stays green. Gold still means match. Use for late-night search, not as the default brand.</p>
+      <div class="dark card">
+        <div class="job">
+          <div class="score" aria-label="Match score 86"><span>86</span></div>
+          <div>
+            <h4>Staff Product Engineer</h4>
+            <div class="co">Notion · San Francisco · Remote OK</div>
+            <div class="tags">
+              <span class="tag">React</span>
+              <span class="tag">Systems</span>
+            </div>
+          </div>
+          <button class="btn-primary">Tailor résumé</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tokens">
+      <h2>Tokens to implement</h2>
+      <p class="section-lead">Copy these into CSS variables / Tailwind theme once we start the app. Do not introduce extra brand colors without a reason.</p>
+      <div class="card" style="overflow:auto">
+        <table>
+          <thead>
+            <tr><th>Token</th><th>Value</th><th>Use</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--forest</code></td><td>#1B4F3E</td><td>Primary button, wordmark, key links</td></tr>
+            <tr><td><code>--forest-bright</code></td><td>#246B54</td><td>Hover on primary</td></tr>
+            <tr><td><code>--ink</code></td><td>#121A17</td><td>Headings, dark chrome</td></tr>
+            <tr><td><code>--gold</code></td><td>#C4A15A</td><td>Match score, selected highlight</td></tr>
+            <tr><td><code>--paper</code></td><td>#F2EEE6</td><td>Page background</td></tr>
+            <tr><td><code>--surface</code></td><td>#FBF8F2</td><td>Secondary panels</td></tr>
+            <tr><td><code>--card</code></td><td>#FFFDF8</td><td>Cards, popovers</td></tr>
+            <tr><td><code>--line</code></td><td>#E3DDD1</td><td>Borders</td></tr>
+            <tr><td><code>--text / --muted</code></td><td>#1A211E / #5C6561</td><td>Body hierarchy</td></tr>
+            <tr><td><code>--font-serif</code></td><td>Newsreader</td><td>H1–H3, empty states, marketing</td></tr>
+            <tr><td><code>--font-sans</code></td><td>Plus Jakarta Sans</td><td>UI, body, buttons</td></tr>
+            <tr><td><code>--font-mono</code></td><td>IBM Plex Mono</td><td>Scores, keywords, filenames</td></tr>
+            <tr><td><code>--radius</code></td><td>14px / 8px</td><td>Cards / controls</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Do / don’t</h2>
+      <div class="grid-2">
+        <article class="card">
+          <h3>Do</h3>
+          <p>Warm paper canvas. Forest buttons. Gold only on the score. Serif for titles. Honest language: “tailor,” not “hack the ATS.” High contrast text. One primary action per screen.</p>
+        </article>
+        <article class="card">
+          <h3>Don’t</h3>
+          <p>Inter + violet gradients. Cool zinc backgrounds. Rainbow skill chips. Fake 99% matches. Comic illustrations. Rounded-pill everything. Gold as body text (contrast fails).</p>
+        </article>
+      </div>
+    </section>
+
+    <footer>
+      Open this file in a browser to review. Once you sign off, we lock these tokens and start the product — upload, scrape, match, tailor.
+    </footer>
+  </div>
+</body>
+</html>
