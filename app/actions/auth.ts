@@ -1,5 +1,6 @@
 "use server";
 
+import { clearAuthSession } from "@/lib/db/auth";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -28,6 +29,8 @@ export async function signInWithGoogle() {
 
 export async function signOutAction() {
   const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  await clearAuthSession(data?.claims);
   await supabase.auth.signOut();
   redirect("/login");
 }

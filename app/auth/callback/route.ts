@@ -1,3 +1,4 @@
+import { upsertUserAndSession } from "@/lib/db/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -11,6 +12,21 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      const [{ data: userData }, { data: claimsData }, { data: sessionData }] =
+        await Promise.all([
+          supabase.auth.getUser(),
+          supabase.auth.getClaims(),
+          supabase.auth.getSession(),
+        ]);
+
+      if (userData.user) {
+        await upsertUserAndSession({
+          user: userData.user,
+          claims: claimsData?.claims,
+          expiresAtUnix: sessionData.session?.expires_at,
+        });
+      }
+
       return NextResponse.redirect(new URL(next, origin));
     }
   }
