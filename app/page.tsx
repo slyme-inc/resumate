@@ -1,11 +1,12 @@
 import { signOutAction } from "@/app/actions/auth";
-import { auth } from "@/auth";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const session = await auth();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
 
-  if (!session?.user) {
+  if (!data?.claims) {
     redirect("/login");
   }
 
