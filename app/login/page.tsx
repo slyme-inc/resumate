@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { signInWithGoogle } from "@/app/actions/auth";
+import logo from "@/public/logo.png";
 
 export default async function LoginPage({
   searchParams,
@@ -10,11 +12,13 @@ export default async function LoginPage({
   return (
     <main className="auth-canvas">
       <div className="w-full max-w-md rounded-[14px] border border-line bg-card px-8 py-10 shadow-[0_1px_2px_rgba(18,26,23,0.04),0_12px_32px_rgba(18,26,23,0.06)]">
-        <div className="mb-8 flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-lg bg-forest font-serif text-base italic text-paper">
-            R
-          </span>
-          <span className="font-serif text-xl tracking-tight">Resumate</span>
+        <div className="mb-4">
+          <Image
+            src={logo}
+            alt="Resumate"
+            priority
+            className="h-8 w-auto"
+          />
         </div>
         <h1 className="font-serif text-4xl font-medium tracking-tight text-ink">
           Sign in to continue
@@ -31,7 +35,7 @@ export default async function LoginPage({
         <form action={signInWithGoogle} className="mt-8">
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-3 rounded-[10px] bg-forest px-4 py-3 text-sm font-semibold tracking-tight text-paper"
+            className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-[10px] bg-forest px-4 py-3 text-sm font-semibold tracking-tight text-paper transition-[transform,background-color] duration-150 ease-out hover:bg-forest-bright active:translate-y-px active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:translate-y-0 motion-reduce:active:scale-100"
           >
             <GoogleMark />
             Continue with Google
