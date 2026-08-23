@@ -1,5 +1,17 @@
+import type { ParsedResume } from "@/lib/resume/types";
 import { relations, sql } from "drizzle-orm";
-import { index, pgPolicy, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  index,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable(
   "users",
@@ -8,6 +20,7 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     name: text("name"),
     avatarUrl: text("avatar_url"),
+    resume: jsonb("resume").$type<ParsedResume>(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .notNull(),
@@ -44,6 +57,37 @@ export const sessions = pgTable(
       to: "authenticated",
       using: sql`user_id = auth.uid()`,
       withCheck: sql`user_id = auth.uid()`,
+    }),
+  ],
+).enableRLS();
+
+export const job = pgTable(
+  "job",
+  {
+    source: text("source").notNull(),
+    id: text("id").notNull(),
+    slug: text("slug"),
+    epoch: bigint("epoch", { mode: "number" }),
+    date: timestamp("date", { withTimezone: true, mode: "date" }),
+    company: text("company"),
+    companyLogo: text("company_logo"),
+    position: text("position"),
+    tags: text("tags").array(),
+    description: text("description"),
+    location: text("location"),
+    applyUrl: text("apply_url"),
+    salaryMin: integer("salary_min"),
+    salaryMax: integer("salary_max"),
+    logo: text("logo"),
+    url: text("url"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.source, table.id] }),
+    index("job_date_idx").on(table.date),
+    pgPolicy("job_select_authenticated", {
+      for: "select",
+      to: "authenticated",
+      using: sql`true`,
     }),
   ],
 ).enableRLS();

@@ -15,6 +15,20 @@
       "when": 1787465987984,
       "tag": "0001_rls-auth-tables",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787524151888,
+      "tag": "0002_equal_maestro",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787527644539,
+      "tag": "0003_rare_kulan_gath",
+      "breakpoints": true
     }
   ]
 }
