@@ -1,4 +1,30 @@
-import type { ParsedResume } from "./types";
+import { toResumeLink } from "./links";
+import type { ParsedResume, ResumeLink } from "./types";
+
+function asResumeLinks(value: unknown): ResumeLink[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const links: ResumeLink[] = [];
+  for (const item of value) {
+    if (typeof item === "string") {
+      const link = toResumeLink(item, item);
+      if (link) {
+        links.push(link);
+      }
+      continue;
+    }
+    if (item && typeof item === "object" && "url" in item && typeof item.url === "string") {
+      const label = "label" in item && typeof item.label === "string" ? item.label : item.url;
+      const link = toResumeLink(label, item.url);
+      if (link) {
+        links.push(link);
+      }
+    }
+  }
+  return links;
+}
 
 export function asParsedResume(value: unknown): ParsedResume | null {
   if (!value || typeof value !== "object") {
@@ -9,9 +35,12 @@ export function asParsedResume(value: unknown): ParsedResume | null {
   if (typeof resume.fileName !== "string" || typeof resume.rawText !== "string") {
     return null;
   }
-  if (!Array.isArray(resume.sections) || !Array.isArray(resume.links)) {
+  if (!Array.isArray(resume.sections)) {
     return null;
   }
 
-  return resume;
+  return {
+    ...resume,
+    links: asResumeLinks(resume.links),
+  };
 }

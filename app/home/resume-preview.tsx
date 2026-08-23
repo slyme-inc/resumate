@@ -1,11 +1,14 @@
-import type { ParsedResume, ResumeBlock } from "@/lib/resume/types";
+import { LinkedText } from "@/app/home/linked-text";
+import type { ParsedResume, ResumeBlock, ResumeLink } from "@/lib/resume/types";
 
-function BlockView({ block }: { block: ResumeBlock }) {
+function BlockView({ block, links }: { block: ResumeBlock; links: ResumeLink[] }) {
   if (block.type === "list") {
     return (
       <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px] leading-relaxed text-text">
         {block.items.map((item, index) => (
-          <li key={`${item}-${index}`}>{item}</li>
+          <li key={`${item}-${index}`}>
+            <LinkedText text={item} links={links} />
+          </li>
         ))}
       </ul>
     );
@@ -26,7 +29,18 @@ function BlockView({ block }: { block: ResumeBlock }) {
     );
   }
 
-  return <p className="mt-2 text-[15px] leading-relaxed text-text">{block.text}</p>;
+  return (
+    <p className="mt-2 text-[15px] leading-relaxed text-text">
+      <LinkedText text={block.text} links={links} />
+    </p>
+  );
+}
+
+function displayHref(link: ResumeLink) {
+  if (link.url.startsWith("mailto:")) {
+    return link.label || link.url.replace(/^mailto:/, "");
+  }
+  return link.label || link.url.replace(/^https?:\/\//, "");
 }
 
 export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
@@ -40,12 +54,9 @@ export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
     );
   }
 
-  const contacts = [
-    resume.email,
-    resume.phone,
-    resume.location,
-    ...resume.links,
-  ].filter((value): value is string => Boolean(value));
+  const contacts = [resume.email, resume.phone, resume.location].filter(
+    (value): value is string => Boolean(value),
+  );
 
   return (
     <article className="min-h-full w-full px-8 py-10 lg:px-12 lg:py-12">
@@ -55,10 +66,36 @@ export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
       {resume.headline ? (
         <p className="mt-2 text-[15px] text-muted">{resume.headline}</p>
       ) : null}
-      {contacts.length > 0 ? (
+      {contacts.length > 0 || resume.links.length > 0 ? (
         <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-faint">
-          {contacts.map((item) => (
-            <span key={item}>{item.replace(/^https?:\/\//, "")}</span>
+          {resume.email ? (
+            <a href={`mailto:${resume.email}`} className="text-forest hover:underline">
+              {resume.email}
+            </a>
+          ) : null}
+          {resume.phone ? (
+            <a href={`tel:${resume.phone.replace(/\s+/g, "")}`} className="hover:underline">
+              {resume.phone}
+            </a>
+          ) : null}
+          {resume.location ? <span>{resume.location}</span> : null}
+          {resume.links
+            .filter((link) => {
+              if (!resume.email) {
+                return true;
+              }
+              return link.url !== `mailto:${resume.email}` && link.url !== resume.email;
+            })
+            .map((link) => (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-forest underline decoration-forest/30 underline-offset-2 hover:decoration-forest"
+            >
+              {displayHref(link)}
+            </a>
           ))}
         </p>
       ) : null}
@@ -70,7 +107,7 @@ export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
           </h3>
           <div className="mt-1 border-t border-line pt-2">
             {section.blocks.map((block, index) => (
-              <BlockView key={`${section.title}-${index}`} block={block} />
+              <BlockView key={`${section.title}-${index}`} block={block} links={resume.links} />
             ))}
           </div>
         </section>

@@ -1,3 +1,5 @@
+import { mergeLinks, toResumeLink } from "@/lib/resume/links";
+import type { ResumeLink } from "@/lib/resume/types";
 import { extractTextItems, getDocumentProxy } from "unpdf";
 
 type TextItem = {
@@ -85,12 +87,39 @@ function linesFromItems(items: TextItem[]) {
   return lines;
 }
 
-export async function extractPdfText(bytes: Uint8Array) {
+async function extractPdfLinks(pdf: Awaited<ReturnType<typeof getDocumentProxy>>) {
+  const links: ResumeLink[] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const annotations = await (await pdf.getPage(pageNumber)).getAnnotations();
+    for (const annotation of annotations) {
+      const record = annotation as {
+        subtype?: string;
+        url?: string;
+        title?: string;
+        contents?: string;
+      };
+      if (record.subtype !== "Link" || !record.url) {
+        continue;
+      }
+      const link = toResumeLink(record.title || record.contents || record.url, record.url);
+      if (link) {
+        links.push(link);
+      }
+    }
+  }
+
+  return mergeLinks([links]);
+}
+
+export async function extractPdfDocument(bytes: Uint8Array) {
   const pdf = await getDocumentProxy(bytes);
-  const { items } = await extractTextItems(pdf);
-  return items
+  const [{ items }, links] = await Promise.all([extractTextItems(pdf), extractPdfLinks(pdf)]);
+  const text = items
     .map((page) => linesFromItems(page).join("\n"))
     .filter((page) => page.trim().length > 0)
     .join("\n\n")
     .trim();
+
+  return { text, links };
 }

@@ -1,11 +1,9 @@
-import type { ParsedResume, ResumeBlock, ResumeSection } from "./types";
+import { emailFromLinks, linksFromText, mergeLinks } from "./links";
+import type { ParsedResume, ResumeBlock, ResumeLink, ResumeSection } from "./types";
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const PHONE_RE =
   /(?:\+?\d{1,3}[-.\s])?(?:\(?\d{3}\)?[-.\s])\d{3}[-.\s]\d{4}\b/;
-const URL_RE = /\bhttps?:\/\/[^\s)]+/gi;
-const BARE_LINK_RE =
-  /\b(?:linkedin\.com\/in\/[^\s,]+|github\.com\/[^\s,]+|gitlab\.com\/[^\s,]+)\b/gi;
 const LOCATION_RE =
   /\b[A-Z][A-Za-z .'-]+,\s*(?:[A-Z]{2}|[A-Z][A-Za-z .'-]+)\b/;
 
@@ -159,20 +157,6 @@ function reflowLines(lines: string[], options: { onlyIncomplete?: boolean } = {}
   return result;
 }
 
-function unique(values: string[]) {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values) {
-    const key = value.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    result.push(value);
-  }
-  return result;
-}
-
 function looksLikeName(line: string) {
   if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /https?:\/\//i.test(line)) {
     return false;
@@ -187,15 +171,11 @@ function looksLikeName(line: string) {
   return words.every((word) => /^[A-Za-z][A-Za-z.'-]*$/.test(word));
 }
 
-function collectLinks(text: string) {
-  const urls = text.match(URL_RE) ?? [];
-  const bare = text.match(BARE_LINK_RE) ?? [];
-  return unique([
-    ...urls.map((url) => url.replace(/[.,;]+$/, "")),
-    ...bare.map((link) =>
-      link.startsWith("http") ? link.replace(/[.,;]+$/, "") : `https://${link.replace(/[.,;]+$/, "")}`,
-    ),
-  ]);
+function isUrlLine(line: string, links: ResumeLink[]) {
+  return links.some((link) => {
+    const host = link.url.replace(/^https?:\/\//, "");
+    return line === link.url || line === host || line === link.label;
+  });
 }
 
 function blocksFromLines(lines: string[]): ResumeBlock[] {
@@ -263,7 +243,11 @@ function blocksFromSkillLines(lines: string[]): ResumeBlock[] {
     .map((text) => ({ type: "paragraph" as const, text }));
 }
 
-export function structureResume(rawText: string, fileName: string): ParsedResume {
+export function structureResume(
+  rawText: string,
+  fileName: string,
+  extraLinks: ResumeLink[] = [],
+): ParsedResume {
   const text = normalizeText(rawText);
   const rawLines = text.split("\n").map((line) => line.trim());
   const firstHeaderIndex = rawLines.findIndex((line) => sectionTitle(line));
@@ -272,10 +256,13 @@ export function structureResume(rawText: string, fileName: string): ParsedResume
   );
   const headerText = headerLines.join("\n");
 
-  const email = headerText.match(EMAIL_RE)?.[0] ?? text.match(EMAIL_RE)?.[0] ?? null;
+  const links = mergeLinks([extraLinks, linksFromText(text), linksFromText(headerText)]);
+  const email =
+    headerText.match(EMAIL_RE)?.[0] ??
+    text.match(EMAIL_RE)?.[0] ??
+    emailFromLinks(links);
   const phone = headerText.match(PHONE_RE)?.[0] ?? text.match(PHONE_RE)?.[0] ?? null;
   const location = headerText.match(LOCATION_RE)?.[0] ?? null;
-  const links = collectLinks(headerText.length > 0 ? headerText : text);
 
   let name: string | null = null;
   let headline: string | null = null;
@@ -310,7 +297,7 @@ export function structureResume(rawText: string, fileName: string): ParsedResume
       if (location && line.includes(location)) {
         return false;
       }
-      return !links.some((link) => line.includes(link.replace(/^https?:\/\//, "")));
+      return !isUrlLine(line, links);
     });
     const blocks = blocksFromLines(body);
     if (blocks.length > 0) {

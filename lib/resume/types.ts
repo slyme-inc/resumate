@@ -8,6 +8,11 @@ export type ResumeSection = {
   blocks: ResumeBlock[];
 };
 
+export type ResumeLink = {
+  label: string;
+  url: string;
+};
+
 export type ParsedResume = {
   fileName: string;
   rawText: string;
@@ -16,6 +21,6 @@ export type ParsedResume = {
   email: string | null;
   phone: string | null;
   location: string | null;
-  links: string[];
+  links: ResumeLink[];
   sections: ResumeSection[];
 };
