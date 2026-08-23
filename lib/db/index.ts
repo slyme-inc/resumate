@@ -1,6 +1,8 @@
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+
+type Database = PostgresJsDatabase<typeof schema>;
 
 function getDatabaseUrl() {
   const url = process.env.DATABASE_URL;
@@ -11,18 +13,21 @@ function getDatabaseUrl() {
 }
 
 const globalForDb = globalThis as unknown as {
-  postgres: ReturnType<typeof postgres> | undefined;
+  postgres?: ReturnType<typeof postgres>;
+  db?: Database;
 };
 
-const client =
-  globalForDb.postgres ??
-  postgres(getDatabaseUrl(), {
-    prepare: false,
-    ssl: "require",
-  });
+export function getDb() {
+  if (!globalForDb.db) {
+    globalForDb.postgres = postgres(getDatabaseUrl(), {
+      prepare: false,
+      ssl: "require",
+      max: 1,
+      idle_timeout: 20,
+      connect_timeout: 10,
+    });
+    globalForDb.db = drizzle(globalForDb.postgres, { schema });
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.postgres = client;
+  return globalForDb.db;
 }
-
-export const db = drizzle(client, { schema });

@@ -30,7 +30,11 @@ export async function signInWithGoogle() {
 export async function signOutAction() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  await clearAuthSession(data?.claims);
+  try {
+    await clearAuthSession(supabase, data?.claims);
+  } catch (persistError) {
+    console.error("Failed to clear session row", persistError);
+  }
   await supabase.auth.signOut();
   redirect("/login");
 }

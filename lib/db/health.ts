@@ -1,6 +1,16 @@
-import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { getSupabaseKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 export async function checkDbHealth() {
-  await db.execute(sql`select 1`);
+  const url = getSupabaseUrl();
+  const key = getSupabaseKey();
+  const response = await fetch(`${url}/rest/v1/users?select=id&limit=1`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase REST ${response.status}`);
+  }
 }

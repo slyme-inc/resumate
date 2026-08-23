@@ -3,9 +3,8 @@ export async function register() {
     return;
   }
 
-  const { checkDbHealth } = await import("@/lib/db/health");
-
   try {
+    const { checkDbHealth } = await import("@/lib/db/health");
     await checkDbHealth();
     console.log("db connected");
   } catch (error) {

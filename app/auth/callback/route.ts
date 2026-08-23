@@ -20,11 +20,15 @@ export async function GET(request: Request) {
         ]);
 
       if (userData.user) {
-        await upsertUserAndSession({
-          user: userData.user,
-          claims: claimsData?.claims,
-          expiresAtUnix: sessionData.session?.expires_at,
-        });
+        try {
+          await upsertUserAndSession(supabase, {
+            user: userData.user,
+            claims: claimsData?.claims,
+            expiresAtUnix: sessionData.session?.expires_at,
+          });
+        } catch (persistError) {
+          console.error("Failed to persist user/session", persistError);
+        }
       }
 
       return NextResponse.redirect(new URL(next, origin));

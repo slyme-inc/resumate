@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { sessions, users } from "@/lib/db/schema";
+import type { createClient } from "@/lib/supabase/server";
+
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
 
 type AuthClaims = {
   sub?: unknown;
@@ -32,76 +32,70 @@ function expiresAtFromClaims(claims: AuthClaims | undefined, fallbackUnix?: numb
   return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 }
 
-export async function upsertUserAndSession(input: {
-  user: AuthUser;
-  claims?: AuthClaims | null;
-  expiresAtUnix?: number;
-}) {
+function throwIfError(error: { message: string } | null, action: string) {
+  if (error) {
+    throw new Error(`${action}: ${error.message}`);
+  }
+}
+
+export async function upsertUserAndSession(
+  supabase: ServerSupabase,
+  input: {
+    user: AuthUser;
+    claims?: AuthClaims | null;
+    expiresAtUnix?: number;
+  },
+) {
   const email = input.user.email ?? asString(input.claims?.email);
   if (!email) {
     throw new Error("Cannot persist user without an email");
   }
 
   const metadata = input.user.user_metadata ?? {};
-  const now = new Date();
+  const now = new Date().toISOString();
 
-  await db
-    .insert(users)
-    .values({
+  const { error: userError } = await supabase.from("users").upsert(
+    {
       id: input.user.id,
       email,
       name: metadata.full_name ?? metadata.name ?? null,
-      avatarUrl: metadata.avatar_url ?? metadata.picture ?? null,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        email,
-        name: metadata.full_name ?? metadata.name ?? null,
-        avatarUrl: metadata.avatar_url ?? metadata.picture ?? null,
-        updatedAt: now,
-      },
-    });
+      avatar_url: metadata.avatar_url ?? metadata.picture ?? null,
+      updated_at: now,
+    },
+    { onConflict: "id" },
+  );
+  throwIfError(userError, "Failed to persist user");
 
   const sessionId = asString(input.claims?.session_id);
   if (!sessionId) {
     return;
   }
 
-  await db
-    .insert(sessions)
-    .values({
+  const { error: sessionError } = await supabase.from("sessions").upsert(
+    {
       id: sessionId,
-      userId: input.user.id,
-      expiresAt: expiresAtFromClaims(input.claims ?? undefined, input.expiresAtUnix),
-    })
-    .onConflictDoUpdate({
-      target: sessions.id,
-      set: {
-        userId: input.user.id,
-        expiresAt: expiresAtFromClaims(input.claims ?? undefined, input.expiresAtUnix),
-      },
-    });
+      user_id: input.user.id,
+      expires_at: expiresAtFromClaims(input.claims ?? undefined, input.expiresAtUnix).toISOString(),
+    },
+    { onConflict: "id" },
+  );
+  throwIfError(sessionError, "Failed to persist session");
 }
 
-export async function deleteSessionById(sessionId: string) {
-  await db.delete(sessions).where(eq(sessions.id, sessionId));
-}
-
-export async function deleteSessionsForUser(userId: string) {
-  await db.delete(sessions).where(eq(sessions.userId, userId));
-}
-
-export async function clearAuthSession(claims?: AuthClaims | null) {
+export async function clearAuthSession(
+  supabase: ServerSupabase,
+  claims?: AuthClaims | null,
+) {
   const sessionId = asString(claims?.session_id);
   if (sessionId) {
-    await deleteSessionById(sessionId);
+    const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
+    throwIfError(error, "Failed to clear session");
     return;
   }
 
   const userId = asString(claims?.sub);
   if (userId) {
-    await deleteSessionsForUser(userId);
+    const { error } = await supabase.from("sessions").delete().eq("user_id", userId);
+    throwIfError(error, "Failed to clear sessions");
   }
 }
