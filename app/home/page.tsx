@@ -1,41 +1,20 @@
-import { signOutAction } from "@/app/actions/auth";
 import { FirstRunTour } from "@/app/home/first-run-tour";
 import { ResumeWorkspace } from "@/app/home/resume-workspace";
+import { AppHeader } from "@/components/app-header";
+import { ProfileSummary } from "@/components/profile-summary";
+import { requireUserId } from "@/lib/auth/session";
 import { getUserResume } from "@/lib/db/resume";
-import { createClient } from "@/lib/supabase/server";
-import logo from "@/public/logo.png";
-import Image from "next/image";
-import { redirect } from "next/navigation";
+import { deriveCandidateProfile } from "@/lib/profile/derive";
 
 export default async function Home() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
-
-  if (!userId) {
-    redirect("/login");
-  }
-
+  const userId = await requireUserId();
   const initialResume = await getUserResume(userId);
+  const profile = initialResume ? deriveCandidateProfile(initialResume) : null;
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex items-center justify-between border-b border-line px-6 py-4">
-        <Image
-          src={logo}
-          alt="Resumate"
-          priority
-          className="h-7 w-auto"
-        />
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="rounded-[10px] border border-line-strong px-4 py-2.5 text-sm font-semibold tracking-tight text-ink"
-          >
-            Log out
-          </button>
-        </form>
-      </header>
+      <AppHeader />
+      {profile ? <ProfileSummary profile={profile} /> : null}
       <main className="flex min-h-0 flex-1">
         <ResumeWorkspace initialResume={initialResume} />
       </main>

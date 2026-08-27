@@ -1,4 +1,4 @@
-import { mergeLinks, toResumeLink } from "@/lib/resume/links";
+import { labelFromUrl, mergeLinks, toResumeLink } from "@/lib/resume/links";
 import type { ResumeLink } from "@/lib/resume/types";
 import { extractTextItems, getDocumentProxy } from "unpdf";
 
@@ -87,24 +87,122 @@ function linesFromItems(items: TextItem[]) {
   return lines;
 }
 
-async function extractPdfLinks(pdf: Awaited<ReturnType<typeof getDocumentProxy>>) {
+type PdfRect = [number, number, number, number];
+
+function orderRect(rect: number[]): PdfRect | null {
+  if (rect.length < 4) {
+    return null;
+  }
+  const x1 = Math.min(rect[0], rect[2]);
+  const y1 = Math.min(rect[1], rect[3]);
+  const x2 = Math.max(rect[0], rect[2]);
+  const y2 = Math.max(rect[1], rect[3]);
+  if (x2 - x1 < 1 && y2 - y1 < 1) {
+    return null;
+  }
+  return [x1, y1, x2, y2];
+}
+
+function rectsFromAnnotation(record: {
+  rect?: number[];
+  quadPoints?: number[];
+}): PdfRect[] {
+  const quads = record.quadPoints;
+  if (Array.isArray(quads) && quads.length >= 8) {
+    const rects: PdfRect[] = [];
+    for (let index = 0; index + 7 < quads.length; index += 8) {
+      const xs = [quads[index], quads[index + 2], quads[index + 4], quads[index + 6]];
+      const ys = [quads[index + 1], quads[index + 3], quads[index + 5], quads[index + 7]];
+      const rect = orderRect([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]);
+      if (rect) {
+        rects.push(rect);
+      }
+    }
+    if (rects.length > 0) {
+      return rects;
+    }
+  }
+  const fallback = orderRect(record.rect ?? []);
+  return fallback ? [fallback] : [];
+}
+
+function itemOverlapsRect(item: TextItem, rect: PdfRect) {
+  const [x1, y1, x2, y2] = rect;
+  const midX = item.x + Math.max(item.width, 1) / 2;
+  const midY = item.y + Math.max(item.height, item.fontSize, 1) * 0.3;
+  return midX >= x1 && midX <= x2 && midY >= y1 && midY <= y2;
+}
+
+function syntheticItem(label: string, rect: PdfRect): TextItem {
+  const [x1, y1, x2, y2] = rect;
+  const height = Math.max(y2 - y1, 10);
+  return {
+    str: label,
+    x: x1,
+    y: y1,
+    width: Math.max(x2 - x1, label.length * height * 0.4),
+    height,
+    fontSize: height,
+  };
+}
+
+function annotationHref(record: { url?: string; unsafeUrl?: string }) {
+  return record.url || record.unsafeUrl || "";
+}
+
+function annotationOverlay(record: {
+  title?: string;
+  contents?: string;
+  overlaidText?: string;
+  contentsObj?: { str?: string };
+}) {
+  return (
+    record.overlaidText?.trim() ||
+    record.title?.trim() ||
+    record.contents?.trim() ||
+    record.contentsObj?.str?.trim() ||
+    ""
+  );
+}
+
+async function extractPdfLinksAndText(
+  pdf: Awaited<ReturnType<typeof getDocumentProxy>>,
+  pages: TextItem[][],
+) {
   const links: ResumeLink[] = [];
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const items = pages[pageNumber - 1] ?? [];
     const annotations = await (await pdf.getPage(pageNumber)).getAnnotations();
     for (const annotation of annotations) {
       const record = annotation as {
         subtype?: string;
         url?: string;
+        unsafeUrl?: string;
         title?: string;
         contents?: string;
+        overlaidText?: string;
+        contentsObj?: { str?: string };
+        rect?: number[];
+        quadPoints?: number[];
       };
-      if (record.subtype !== "Link" || !record.url) {
+      if (record.subtype !== "Link") {
         continue;
       }
-      const link = toResumeLink(record.title || record.contents || record.url, record.url);
-      if (link) {
-        links.push(link);
+      const href = annotationHref(record);
+      const rects = rectsFromAnnotation(record);
+      const overlapping = items.filter((item) =>
+        rects.some((rect) => itemOverlapsRect(item, rect)),
+      );
+      const visible = joinFragments(overlapping);
+      const overlay = annotationOverlay(record);
+      const link = toResumeLink(visible || overlay || href, href);
+      if (!link) {
+        continue;
+      }
+      links.push(link);
+      if (!visible && rects[0]) {
+        items.push(syntheticItem(link.label || labelFromUrl(link.url), rects[0]));
       }
     }
   }
@@ -114,7 +212,8 @@ async function extractPdfLinks(pdf: Awaited<ReturnType<typeof getDocumentProxy>>
 
 export async function extractPdfDocument(bytes: Uint8Array) {
   const pdf = await getDocumentProxy(bytes);
-  const [{ items }, links] = await Promise.all([extractTextItems(pdf), extractPdfLinks(pdf)]);
+  const { items } = await extractTextItems(pdf);
+  const links = await extractPdfLinksAndText(pdf, items);
   const text = items
     .map((page) => linesFromItems(page).join("\n"))
     .filter((page) => page.trim().length > 0)

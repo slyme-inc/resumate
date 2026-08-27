@@ -64,7 +64,9 @@ export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
         {resume.name ?? resume.fileName.replace(/\.[^.]+$/, "")}
       </h2>
       {resume.headline ? (
-        <p className="mt-2 text-[15px] text-muted">{resume.headline}</p>
+        <p className="mt-2 text-[15px] text-muted">
+          <LinkedText text={resume.headline} links={resume.links} />
+        </p>
       ) : null}
       {contacts.length > 0 || resume.links.length > 0 ? (
         <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-faint">

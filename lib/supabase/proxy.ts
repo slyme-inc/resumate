@@ -29,7 +29,9 @@ export async function updateSession(request: NextRequest) {
   const isLoggedIn = Boolean(data?.claims);
   const { pathname } = request.nextUrl;
   const isPublic =
-    pathname.startsWith("/login") || pathname.startsWith("/auth");
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth");
 
   if (!isLoggedIn && !isPublic) {
     const url = request.nextUrl.clone();
@@ -40,7 +42,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isLoggedIn && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/home";
+    url.pathname = "/jobs";
     url.search = "";
     return NextResponse.redirect(url);
   }

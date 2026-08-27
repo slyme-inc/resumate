@@ -1,3 +1,4 @@
+import { linkMatchTokens } from "@/lib/resume/links";
 import type { ResumeLink } from "@/lib/resume/types";
 import type { ReactNode } from "react";
 
@@ -12,6 +13,30 @@ function hrefFor(token: string) {
     return token;
   }
   return `https://${token}`;
+}
+
+function isWordChar(char: string | undefined) {
+  return Boolean(char && /[A-Za-z0-9]/i.test(char));
+}
+
+function findAll(text: string, needle: string) {
+  const haystack = text.toLowerCase();
+  const match = needle.toLowerCase();
+  const ranges: Array<{ start: number; end: number }> = [];
+  let from = 0;
+
+  while (from <= haystack.length - match.length) {
+    const index = haystack.indexOf(match, from);
+    if (index < 0) {
+      break;
+    }
+    if (!isWordChar(text[index - 1]) && !isWordChar(text[index + match.length])) {
+      ranges.push({ start: index, end: index + needle.length });
+    }
+    from = index + match.length;
+  }
+
+  return ranges;
 }
 
 const LINK_CLASS =
@@ -38,19 +63,19 @@ export function LinkedText({
   }
 
   const labels = [...links]
-    .filter((link) => link.label.length >= 3 && !/^https?:\/\//i.test(link.label))
-    .sort((left, right) => right.label.length - left.label.length);
+    .flatMap((link) =>
+      linkMatchTokens(link).map((token) => ({ token, href: link.url })),
+    )
+    .sort((left, right) => right.token.length - left.token.length);
 
-  for (const link of labels) {
-    const index = text.toLowerCase().indexOf(link.label.toLowerCase());
-    if (index < 0) {
-      continue;
+  for (const label of labels) {
+    for (const found of findAll(text, label.token)) {
+      const overlaps = ranges.some((range) => found.start < range.end && found.end > range.start);
+      if (overlaps) {
+        continue;
+      }
+      ranges.push({ start: found.start, end: found.end, href: label.href });
     }
-    const overlaps = ranges.some((range) => index < range.end && index + link.label.length > range.start);
-    if (overlaps) {
-      continue;
-    }
-    ranges.push({ start: index, end: index + link.label.length, href: link.url });
   }
 
   ranges.sort((left, right) => left.start - right.start || right.end - left.end);

@@ -1,4 +1,4 @@
-import { emailFromLinks, linksFromText, mergeLinks } from "./links";
+import { emailFromLinks, isLinkOnlyLine, linksFromText, mergeLinks } from "./links";
 import type { ParsedResume, ResumeBlock, ResumeLink, ResumeSection } from "./types";
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
@@ -77,10 +77,23 @@ function endsIncomplete(line: string) {
   );
 }
 
+function looksLikeSocialLine(line: string) {
+  const tokens = line.split(/[\s|•·,/+-]+/).filter(Boolean);
+  return (
+    tokens.length > 0 &&
+    tokens.every(
+      (token) =>
+        /^(github|gitlab|linkedin|twitter|portfolio|website|site|behance|dribbble)$/i.test(
+          token,
+        ) || /^(linkedin|github|gitlab)\.com/i.test(token),
+    )
+  );
+}
+
 function isSoftWrap(
   previous: string,
   next: string,
-  options: { onlyIncomplete?: boolean } = {},
+  options: { onlyIncomplete?: boolean; links?: ResumeLink[] } = {},
 ) {
   if (!previous || !next) {
     return false;
@@ -92,6 +105,15 @@ function isSoftWrap(
     return false;
   }
   if (/https?:\/\//i.test(next) && !/https?:\/\//i.test(previous)) {
+    return false;
+  }
+  if (looksLikeSocialLine(previous) || looksLikeSocialLine(next)) {
+    return false;
+  }
+  if (
+    options.links &&
+    (isLinkOnlyLine(previous, options.links) || isLinkOnlyLine(next, options.links))
+  ) {
     return false;
   }
   if (endsIncomplete(previous)) {
@@ -124,7 +146,10 @@ function joinWrapped(left: string, right: string) {
   return `${left} ${right}`;
 }
 
-function reflowLines(lines: string[], options: { onlyIncomplete?: boolean } = {}) {
+function reflowLines(
+  lines: string[],
+  options: { onlyIncomplete?: boolean; links?: ResumeLink[] } = {},
+) {
   const result: string[] = [];
 
   for (const line of lines) {
@@ -171,14 +196,18 @@ function looksLikeName(line: string) {
   return words.every((word) => /^[A-Za-z][A-Za-z.'-]*$/.test(word));
 }
 
-function isUrlLine(line: string, links: ResumeLink[]) {
-  return links.some((link) => {
-    const host = link.url.replace(/^https?:\/\//, "");
-    return line === link.url || line === host || line === link.label;
-  });
+function isUrlLine(line: string) {
+  return (
+    /^https?:\/\//i.test(line) ||
+    /^www\./i.test(line) ||
+    /^(linkedin|github|gitlab)\.com\//i.test(line)
+  );
 }
 
-function blocksFromLines(lines: string[]): ResumeBlock[] {
+function blocksFromLines(
+  lines: string[],
+  options: { links?: ResumeLink[] } = {},
+): ResumeBlock[] {
   const blocks: ResumeBlock[] = [];
   let paragraph: string[] = [];
   let list: string[] = [];
@@ -223,7 +252,7 @@ function blocksFromLines(lines: string[]): ResumeBlock[] {
     }
 
     const lastItem = list[list.length - 1];
-    if (lastItem && isSoftWrap(lastItem, trimmed)) {
+    if (lastItem && isSoftWrap(lastItem, trimmed, options)) {
       list[list.length - 1] = joinWrapped(lastItem, trimmed);
       continue;
     }
@@ -237,8 +266,8 @@ function blocksFromLines(lines: string[]): ResumeBlock[] {
   return blocks;
 }
 
-function blocksFromSkillLines(lines: string[]): ResumeBlock[] {
-  return reflowLines(lines, { onlyIncomplete: true })
+function blocksFromSkillLines(lines: string[], links: ResumeLink[] = []): ResumeBlock[] {
+  return reflowLines(lines, { onlyIncomplete: true, links })
     .filter((line) => line.length > 0)
     .map((text) => ({ type: "paragraph" as const, text }));
 }
@@ -251,12 +280,12 @@ export function structureResume(
   const text = normalizeText(rawText);
   const rawLines = text.split("\n").map((line) => line.trim());
   const firstHeaderIndex = rawLines.findIndex((line) => sectionTitle(line));
+  const links = mergeLinks([extraLinks, linksFromText(text)]);
   const headerLines = reflowLines(
     firstHeaderIndex === -1 ? rawLines.slice(0, 12) : rawLines.slice(0, firstHeaderIndex),
+    { links },
   );
   const headerText = headerLines.join("\n");
-
-  const links = mergeLinks([extraLinks, linksFromText(text), linksFromText(headerText)]);
   const email =
     headerText.match(EMAIL_RE)?.[0] ??
     text.match(EMAIL_RE)?.[0] ??
@@ -278,6 +307,9 @@ export function structureResume(
       name = line;
       continue;
     }
+    if (isLinkOnlyLine(line, links)) {
+      continue;
+    }
     if (name && !headline && line.length <= 80 && !sectionTitle(line)) {
       headline = line;
       break;
@@ -287,7 +319,7 @@ export function structureResume(
   const sections: ResumeSection[] = [];
 
   if (firstHeaderIndex === -1) {
-    const body = reflowLines(rawLines).filter((line) => {
+    const body = reflowLines(rawLines, { links }).filter((line) => {
       if (!line) {
         return true;
       }
@@ -297,9 +329,9 @@ export function structureResume(
       if (location && line.includes(location)) {
         return false;
       }
-      return !isUrlLine(line, links);
+      return !isUrlLine(line);
     });
-    const blocks = blocksFromLines(body);
+    const blocks = blocksFromLines(body, { links });
     if (blocks.length > 0) {
       sections.push({ title: "Résumé", blocks });
     }
@@ -312,8 +344,8 @@ export function structureResume(
     function pushSection() {
       const blocks =
         currentKind === "Skills"
-          ? blocksFromSkillLines(currentLines)
-          : blocksFromLines(reflowLines(currentLines));
+          ? blocksFromSkillLines(currentLines, links)
+          : blocksFromLines(reflowLines(currentLines, { links }), { links });
       if (blocks.length > 0) {
         sections.push({ title: currentTitle, blocks });
       }

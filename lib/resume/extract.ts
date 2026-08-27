@@ -1,4 +1,9 @@
-import { linksFromHtml, mergeLinks } from "@/lib/resume/links";
+import {
+  htmlToPlainText,
+  linksFromHtml,
+  mergeLinks,
+  withVisibleAnchorText,
+} from "@/lib/resume/links";
 import { extractPdfDocument } from "@/lib/resume/pdf-text";
 import mammoth from "mammoth";
 
@@ -48,9 +53,20 @@ async function extractDocx(bytes: Uint8Array) {
     mammoth.convertToHtml({ buffer }),
   ]);
 
+  const html = withVisibleAnchorText(htmlResult.value);
+  const links = linksFromHtml(html);
+  const rawText = textResult.value.trim();
+  const htmlText = htmlToPlainText(html);
+  const missingLinkText = links.some(
+    (link) =>
+      Boolean(link.label) &&
+      !rawText.toLowerCase().includes(link.label.toLowerCase()) &&
+      !rawText.toLowerCase().includes(link.url.toLowerCase()),
+  );
+
   return {
-    text: textResult.value.trim(),
-    links: linksFromHtml(htmlResult.value),
+    text: missingLinkText && htmlText ? htmlText : rawText,
+    links,
   };
 }
 
