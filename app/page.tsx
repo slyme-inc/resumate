@@ -27,7 +27,12 @@ export default async function LandingPage() {
 
   let jobCount = 0;
   try {
-    jobCount = await countJobs();
+    jobCount = await Promise.race([
+      countJobs(),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("countJobs timeout")), 3000);
+      }),
+    ]);
   } catch {
     // The landing page should still render if the database is unreachable.
   }

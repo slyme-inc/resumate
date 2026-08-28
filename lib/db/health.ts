@@ -8,6 +8,7 @@ export async function checkDbHealth() {
       apikey: key,
       Authorization: `Bearer ${key}`,
     },
+    signal: AbortSignal.timeout(3000),
   });
 
   if (!response.ok) {
