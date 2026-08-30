@@ -89,7 +89,7 @@ export function EmptyResumeState({
           }}
         />
         <span className="inline-flex rounded-[10px] bg-forest px-4 py-2.5 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 ease-out group-hover:bg-forest-bright">
-          {pending ? "Reading résumé…" : "Upload résumé"}
+          {pending ? "Analyzing your experience…" : "Upload résumé"}
         </span>
         <span className="mt-3 block text-sm text-muted">
           PDF or DOCX · drop a file here

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export function AppHeader() {
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-line bg-paper px-6 py-4">
+    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-paper px-6 py-4">
       <div className="flex items-center gap-6">
         <Link href="/jobs" aria-label="Resumate home">
           <Image src={logo} alt="Resumate" priority className="h-7 w-auto" />

@@ -4,6 +4,7 @@ import { parseResumeAction } from "@/app/actions/resume";
 import { EmptyResumeState } from "@/app/home/empty-resume-state";
 import { PdfPreview } from "@/app/home/pdf-preview";
 import { ResumePreview } from "@/app/home/resume-preview";
+import { ResumePreviewSkeleton } from "@/components/skeletons";
 import type { ParsedResume } from "@/lib/resume/types";
 import { useState } from "react";
 
@@ -64,7 +65,9 @@ export function ResumeWorkspace({
         />
       </section>
       <section className="min-h-0 overflow-hidden bg-card">
-        {resume && pdfVersion ? (
+        {pending ? (
+          <ResumePreviewSkeleton />
+        ) : resume && pdfVersion ? (
           // The version in the URL makes a re-upload refetch rather than
           // re-render the PDF the browser already has.
           <PdfPreview

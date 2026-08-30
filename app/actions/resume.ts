@@ -1,7 +1,11 @@
 "use server";
 
+import { extractProfileWithGemini } from "@/lib/ai/profile";
+import { isGeminiConfigured } from "@/lib/ai/gemini";
+import { saveUserProfile } from "@/lib/db/profile";
 import { saveUserResume } from "@/lib/db/resume";
 import { deleteResumeFile, saveResumeFile } from "@/lib/db/resume-file";
+import { heuristicStoredProfile } from "@/lib/profile/hydrate";
 import { parseResumeFile, type ParsedResume } from "@/lib/resume/parse";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,6 +39,15 @@ export async function parseResumeAction(formData: FormData): Promise<ParseResume
     const bytes = new Uint8Array(await file.arrayBuffer());
     const resume = await parseResumeFile(file.name, bytes);
     await saveUserResume(userId, resume);
+    await saveUserProfile(userId, heuristicStoredProfile(resume));
+
+    if (isGeminiConfigured()) {
+      try {
+        await saveUserProfile(userId, await extractProfileWithGemini(resume));
+      } catch {
+        // Heuristic profile is already stored; Gemini can be retried from /profile.
+      }
+    }
 
     if (!isPdf(file.name)) {
       // A DOCX upload replaces any PDF we were still rendering.

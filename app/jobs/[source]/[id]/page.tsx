@@ -1,8 +1,12 @@
 import { AppHeader } from "@/components/app-header";
-import { GapList, ScoreBadge, ScoreBreakdown } from "@/components/match-score";
+import { CompanyIntelCard } from "@/components/company-intel";
+import { JobWorkspace } from "@/components/job-workspace";
+import { ScoreBadge, ScoreBreakdown } from "@/components/match-score";
 import { SaveButton } from "@/components/save-button";
 import { requireUserId } from "@/lib/auth/session";
+import { countOpenRoles, getCompanyIntel } from "@/lib/db/company";
 import { getJob, listSavedKeys } from "@/lib/db/jobs";
+import { getUserResume } from "@/lib/db/resume";
 import { formatSalary, freshness } from "@/lib/format";
 import { loadCandidateProfile } from "@/lib/matching/feed";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
@@ -11,6 +15,8 @@ import { ROLE_LABELS, SENIORITY_LABELS, skillLabel } from "@/lib/matching/taxono
 import { toParagraphs } from "@/lib/matching/text";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+
+export const maxDuration = 60;
 
 const WORK_MODE_LABELS = {
   remote: "Remote",
@@ -32,10 +38,20 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
     redirect("/home");
   }
 
-  const savedKeys = await listSavedKeys(userId);
+  const [savedKeys, company, resume] = await Promise.all([
+    listSavedKeys(userId),
+    getCompanyIntel(row.company, row.ycSlug ?? null),
+    getUserResume(userId),
+  ]);
+  if (!resume) {
+    redirect("/home");
+  }
   const job = normalizeJob(row);
   const match = scoreJob(profile, job);
   const saved = savedKeys.has(jobKey(job.source, job.id));
+  const openRoles = company
+    ? await countOpenRoles(company.company, company.ycSlug)
+    : 0;
 
   const posted = freshness(job.date);
   const salary = formatSalary(job.salaryMin, job.salaryMax);
@@ -53,17 +69,27 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
   ] as const;
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex h-dvh flex-col">
       <AppHeader />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
-        <Link
-          href="/jobs"
-          className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors duration-150 hover:text-ink"
-        >
-          ← Back to matches
-        </Link>
+      <JobWorkspace
+        source={job.source}
+        id={job.id}
+        company={job.company}
+        resume={resume}
+        focusSkills={[
+          ...match.matchedSkills.map(skillLabel),
+          ...profile.primarySkills.map((skill) => skill.label),
+        ]}
+        header={
+          <>
+            <Link
+              href="/jobs"
+              className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors duration-150 hover:text-ink"
+            >
+              ← Back to matches
+            </Link>
 
-        <header className="mt-5 flex flex-wrap items-start gap-5">
+            <header className="mt-5 flex flex-wrap items-start gap-5">
           <ScoreBadge score={match.score} />
           <div className="min-w-60 flex-1">
             <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight text-ink">
@@ -98,41 +124,11 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
               </a>
             ) : null}
           </div>
-        </header>
-
-        <section className="mt-8 rounded-[14px] border border-line bg-card p-6">
-          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
-            Why this matches you
-          </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-text">{match.summary}</p>
-
-          {match.matchedSkills.length > 0 ? (
-            <div className="mt-5">
-              <h3 className="text-sm font-semibold tracking-tight text-ink">Your strengths here</h3>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {match.matchedSkills.map((skillId) => (
-                  <span
-                    key={skillId}
-                    className="rounded-full bg-forest-soft px-2.5 py-1 text-xs font-medium tracking-tight text-forest"
-                  >
-                    {skillLabel(skillId)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="mt-5">
-            <h3 className="text-sm font-semibold tracking-tight text-ink">
-              What the posting asks for that your résumé does not show
-            </h3>
-            <div className="mt-2">
-              <GapList gaps={match.missingSkills} />
-            </div>
-          </div>
-        </section>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_18rem]">
+            </header>
+          </>
+        }
+      >
+        <div className="space-y-6">
           <section className="rounded-[14px] border border-line bg-card p-6">
             <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
               Score breakdown
@@ -146,7 +142,8 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
             </p>
           </section>
 
-          <aside className="rounded-[14px] border border-line bg-card p-6">
+          {company ? <CompanyIntelCard intel={company} openRoles={openRoles} /> : null}
+          <div className="rounded-[14px] border border-line bg-card p-6">
             <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
               The role
             </h2>
@@ -185,7 +182,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
                 View original posting
               </a>
             ) : null}
-          </aside>
+          </div>
         </div>
 
         {paragraphs.length > 0 ? (
@@ -202,7 +199,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
             </div>
           </section>
         ) : null}
-      </main>
+      </JobWorkspace>
     </div>
   );
 }

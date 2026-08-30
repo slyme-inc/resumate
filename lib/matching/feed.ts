@@ -1,6 +1,7 @@
 import { fetchJobPool, type JobPoolOptions } from "@/lib/db/jobs";
-import { getUserResume } from "@/lib/db/resume";
+import { getUserResumeAndProfile } from "@/lib/db/profile";
 import { deriveCandidateProfile } from "@/lib/profile/derive";
+import { toCandidateProfile } from "@/lib/profile/hydrate";
 import type { CandidateProfile } from "@/lib/profile/types";
 import type { WorkMode } from "./extract";
 import { jobKey, normalizeJob, type JobRow, type NormalizedJob } from "./job";
@@ -23,8 +24,11 @@ export type FeedFilters = {
 };
 
 export async function loadCandidateProfile(userId: string): Promise<CandidateProfile | null> {
-  const resume = await getUserResume(userId);
-  return resume ? deriveCandidateProfile(resume) : null;
+  const { resume, profile } = await getUserResumeAndProfile(userId);
+  if (!resume) {
+    return null;
+  }
+  return profile ? toCandidateProfile(profile, resume) : deriveCandidateProfile(resume);
 }
 
 export function scoreAndRank(

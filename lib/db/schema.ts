@@ -1,8 +1,11 @@
+import type { OpportunityInsight } from "@/lib/ai/types";
+import type { StoredProfile } from "@/lib/profile/stored";
 import type { ParsedResume } from "@/lib/resume/types";
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   customType,
+  date,
   foreignKey,
   index,
   integer,
@@ -52,6 +55,7 @@ export const users = pgTable(
     name: text("name"),
     avatarUrl: text("avatar_url"),
     resume: jsonb("resume").$type<ParsedResume>(),
+    profile: jsonb("profile").$type<StoredProfile>(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .notNull(),
@@ -138,8 +142,11 @@ export const job = pgTable(
     applyUrl: text("apply_url"),
     salaryMin: integer("salary_min"),
     salaryMax: integer("salary_max"),
+    salaryCurrency: text("salary_currency"),
     logo: text("logo"),
     url: text("url"),
+    crawledAt: timestamp("crawled_at", { withTimezone: true, mode: "date" }),
+    ycSlug: text("yc_slug"),
   },
   (table) => [
     primaryKey({ columns: [table.source, table.id] }),
@@ -191,9 +198,66 @@ export const savedJob = pgTable(
   ],
 ).enableRLS();
 
+/**
+ * Existing company/funding directory. Read-only in the app; collectors write it.
+ */
+export const fundingRound = pgTable(
+  "funding_round",
+  {
+    source: text("source").notNull(),
+    id: text("id").notNull(),
+    company: text("company"),
+    website: text("website"),
+    industry: text("industry"),
+    country: text("country"),
+    region: text("region"),
+    amount: text("amount"),
+    round: text("round"),
+    announcedAt: date("announced_at", { mode: "date" }),
+    sourceUrl: text("source_url"),
+    ycSlug: text("yc_slug"),
+    ycBatch: text("yc_batch"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true, mode: "date" }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true, mode: "date" }),
+  },
+  (table) => [primaryKey({ columns: [table.source, table.id] })],
+);
+
+export const opportunityInsight = pgTable(
+  "opportunity_insight",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobSource: text("job_source").notNull(),
+    jobId: text("job_id").notNull(),
+    profileFp: text("profile_fp").notNull(),
+    insight: jsonb("insight").$type<OpportunityInsight>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.jobSource, table.jobId] }),
+    foreignKey({
+      columns: [table.jobSource, table.jobId],
+      foreignColumns: [job.source, job.id],
+      name: "opportunity_insight_job_fk",
+    }).onDelete("cascade"),
+    index("opportunity_insight_user_idx").on(table.userId),
+    pgPolicy("opportunity_insight_self_all", {
+      for: "all",
+      to: "authenticated",
+      using: sql`user_id = auth.uid()`,
+      withCheck: sql`user_id = auth.uid()`,
+    }),
+  ],
+).enableRLS();
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
   resumeFile: one(resumeFile),
+  insights: many(opportunityInsight),
 }));
 
 export const resumeFileRelations = relations(resumeFile, ({ one }) => ({
@@ -217,6 +281,17 @@ export const savedJobRelations = relations(savedJob, ({ one }) => ({
   }),
   job: one(job, {
     fields: [savedJob.jobSource, savedJob.jobId],
+    references: [job.source, job.id],
+  }),
+}));
+
+export const opportunityInsightRelations = relations(opportunityInsight, ({ one }) => ({
+  user: one(users, {
+    fields: [opportunityInsight.userId],
+    references: [users.id],
+  }),
+  job: one(job, {
+    fields: [opportunityInsight.jobSource, opportunityInsight.jobId],
     references: [job.source, job.id],
   }),
 }));

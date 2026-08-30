@@ -42,15 +42,23 @@ export function ProfileSummary({ profile }: { profile: CandidateProfile }) {
             </div>
           ) : null}
         </div>
-        <Link
-          href="/jobs"
-          className="rounded-[10px] bg-forest px-4 py-2.5 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 hover:bg-forest-bright"
-        >
-          See your matches
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/profile"
+            className="rounded-[10px] border border-line-strong px-4 py-2.5 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-card"
+          >
+            Review profile
+          </Link>
+          <Link
+            href="/jobs"
+            className="rounded-[10px] bg-forest px-4 py-2.5 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 hover:bg-forest-bright"
+          >
+            See your matches
+          </Link>
+        </div>
       </div>
       <p className="mt-3 font-mono text-[10px] text-faint">
-        Read from your résumé, not entered by you. Matching uses these values.
+        Derived from your résumé. Review and correct it on your profile.
       </p>
     </section>
   );

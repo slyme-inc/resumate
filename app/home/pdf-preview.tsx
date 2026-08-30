@@ -1,6 +1,7 @@
 "use client";
 
 import "@/app/home/pdf-preview.css";
+import { ResumePreviewSkeleton } from "@/components/skeletons";
 import { displayLinkTargets, normalizeHref } from "@/lib/resume/links";
 import type { ResumeLink } from "@/lib/resume/types";
 import { useEffect, useRef, useState } from "react";
@@ -544,7 +545,12 @@ export function PdfPreview({
   }
 
   return (
-    <div className="flex h-full min-h-full flex-col">
+    <div className="relative flex h-full min-h-full flex-col">
+      {!isRendered ? (
+        <div className="absolute inset-0 z-10 bg-card">
+          <ResumePreviewSkeleton />
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-3">
         <span className="truncate font-mono text-xs text-faint">{fileName}</span>
         {pageCount > 1 ? (

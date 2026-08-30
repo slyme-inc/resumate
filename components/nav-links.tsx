@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/jobs", label: "Jobs" },
   { href: "/saved", label: "Saved" },
   { href: "/home", label: "Résumé" },
+  { href: "/profile", label: "Profile" },
 ] as const;
 
 export function NavLinks() {
