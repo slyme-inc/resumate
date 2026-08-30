@@ -34,6 +34,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth");
 
   if (!isLoggedIn && !isPublic) {
+    if (pathname.startsWith("/api/")) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

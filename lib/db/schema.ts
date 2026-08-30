@@ -2,6 +2,7 @@ import type { ParsedResume } from "@/lib/resume/types";
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  customType,
   foreignKey,
   index,
   integer,
@@ -13,6 +14,35 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+function bytesFromDriver(value: unknown): Uint8Array {
+  if (value instanceof Uint8Array) {
+    return Uint8Array.from(value);
+  }
+  if (typeof value === "string") {
+    const hex = value.startsWith("\\x") ? value.slice(2) : value;
+    return Uint8Array.from(Buffer.from(hex, "hex"));
+  }
+  if (value && typeof value === "object" && "data" in value) {
+    const data = (value as { data: unknown }).data;
+    if (Array.isArray(data)) {
+      return Uint8Array.from(data);
+    }
+  }
+  throw new Error("Unexpected bytea value from the database.");
+}
+
+const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+  toDriver(value) {
+    return Buffer.from(value);
+  },
+  fromDriver(value) {
+    return bytesFromDriver(value);
+  },
+});
 
 export const users = pgTable(
   "users",
@@ -35,6 +65,35 @@ export const users = pgTable(
       to: "authenticated",
       using: sql`id = auth.uid()`,
       withCheck: sql`id = auth.uid()`,
+    }),
+  ],
+).enableRLS();
+
+/**
+ * The parsed JSON on `users.resume` is a lossy reading of the document. Keeping
+ * the original bytes lets the preview render the résumé exactly as the
+ * candidate laid it out, rather than an approximation of it.
+ */
+export const resumeFile = pgTable(
+  "resume_file",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    bytes: bytea("bytes").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  () => [
+    pgPolicy("resume_file_self_all", {
+      for: "all",
+      to: "authenticated",
+      using: sql`user_id = auth.uid()`,
+      withCheck: sql`user_id = auth.uid()`,
     }),
   ],
 ).enableRLS();
@@ -132,8 +191,16 @@ export const savedJob = pgTable(
   ],
 ).enableRLS();
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
+  resumeFile: one(resumeFile),
+}));
+
+export const resumeFileRelations = relations(resumeFile, ({ one }) => ({
+  user: one(users, {
+    fields: [resumeFile.userId],
+    references: [users.id],
+  }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

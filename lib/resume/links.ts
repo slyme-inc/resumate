@@ -114,6 +114,56 @@ export function linkMatchTokens(link: ResumeLink) {
   return [...tokens];
 }
 
+/**
+ * Words and URLs that should be clickable in the PDF preview, including
+ * labels like "GitHub" that the file paints as plain text.
+ */
+export function displayLinkTargets(links: ResumeLink[], email?: string | null) {
+  const byText = new Map<string, string>();
+  const add = (text: string, href: string) => {
+    const trimmed = text.replace(/\s+/g, " ").trim();
+    if (trimmed.length < 3 || byText.has(trimmed.toLowerCase())) {
+      return;
+    }
+    byText.set(trimmed.toLowerCase(), href);
+  };
+
+  if (email) {
+    add(email, `mailto:${email}`);
+  }
+
+  for (const link of links) {
+    try {
+      const parsed = new URL(link.url);
+      const host = parsed.hostname.replace(/^www\./, "");
+      const handle = parsed.pathname.split("/").filter(Boolean)[0];
+      if (handle && host.includes("github")) {
+        add("GitHub", `https://github.com/${decodeURIComponent(handle)}`);
+      }
+      if (handle && host.includes("linkedin")) {
+        add("LinkedIn", link.url);
+      }
+      if (handle && host.includes("gitlab")) {
+        add("GitLab", `https://gitlab.com/${decodeURIComponent(handle)}`);
+      }
+    } catch {
+      // mailto: and tel: have no profile to infer
+    }
+  }
+
+  for (const link of links) {
+    add(link.label, link.url);
+    for (const token of linkMatchTokens(link)) {
+      add(token, link.url);
+    }
+    add(link.url.replace(/^https?:\/\//, ""), link.url);
+  }
+
+  return [...byText.entries()]
+    .map(([text, href]) => ({ text, href }))
+    .sort((left, right) => right.text.length - left.text.length);
+}
+
 export function isLinkOnlyLine(line: string, links: ResumeLink[]) {
   const tokens = line.split(/[\s|•·,/+-]+/).filter(Boolean);
   if (tokens.length === 0 || links.length === 0) {

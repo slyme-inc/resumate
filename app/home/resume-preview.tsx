@@ -48,7 +48,8 @@ export function ResumePreview({ resume }: { resume: ParsedResume | null }) {
     return (
       <div className="flex h-full min-h-full items-center justify-center px-8 text-center">
         <p className="max-w-xs text-[15px] leading-relaxed text-muted">
-          Upload a PDF or DOCX on the left. The parsed résumé will appear here.
+          Upload a PDF or DOCX on the left. A PDF renders as the original pages;
+          a DOCX shows as a parsed document.
         </p>
       </div>
     );

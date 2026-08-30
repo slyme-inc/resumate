@@ -1,12 +1,17 @@
 "use server";
 
 import { saveUserResume } from "@/lib/db/resume";
+import { deleteResumeFile, saveResumeFile } from "@/lib/db/resume-file";
 import { parseResumeFile, type ParsedResume } from "@/lib/resume/parse";
 import { createClient } from "@/lib/supabase/server";
 
 export type ParseResumeResult =
-  | { ok: true; resume: ParsedResume }
+  | { ok: true; resume: ParsedResume; pdfVersion: string | null }
   | { ok: false; error: string };
+
+function isPdf(fileName: string) {
+  return fileName.toLowerCase().endsWith(".pdf");
+}
 
 export async function parseResumeAction(formData: FormData): Promise<ParseResumeResult> {
   const supabase = await createClient();
@@ -30,7 +35,20 @@ export async function parseResumeAction(formData: FormData): Promise<ParseResume
     const bytes = new Uint8Array(await file.arrayBuffer());
     const resume = await parseResumeFile(file.name, bytes);
     await saveUserResume(userId, resume);
-    return { ok: true, resume };
+
+    if (!isPdf(file.name)) {
+      // A DOCX upload replaces any PDF we were still rendering.
+      await deleteResumeFile(userId);
+      return { ok: true, resume, pdfVersion: null };
+    }
+
+    const updatedAt = await saveResumeFile(userId, {
+      fileName: file.name,
+      contentType: "application/pdf",
+      bytes,
+    });
+
+    return { ok: true, resume, pdfVersion: String(updatedAt.getTime()) };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "We could not read that résumé.";

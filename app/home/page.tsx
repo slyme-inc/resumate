@@ -4,11 +4,15 @@ import { AppHeader } from "@/components/app-header";
 import { ProfileSummary } from "@/components/profile-summary";
 import { requireUserId } from "@/lib/auth/session";
 import { getUserResume } from "@/lib/db/resume";
+import { getResumeFileMeta } from "@/lib/db/resume-file";
 import { deriveCandidateProfile } from "@/lib/profile/derive";
 
 export default async function Home() {
   const userId = await requireUserId();
-  const initialResume = await getUserResume(userId);
+  const [initialResume, pdfMeta] = await Promise.all([
+    getUserResume(userId),
+    getResumeFileMeta(userId),
+  ]);
   const profile = initialResume ? deriveCandidateProfile(initialResume) : null;
 
   return (
@@ -16,7 +20,12 @@ export default async function Home() {
       <AppHeader />
       {profile ? <ProfileSummary profile={profile} /> : null}
       <main className="flex min-h-0 flex-1">
-        <ResumeWorkspace initialResume={initialResume} />
+        <ResumeWorkspace
+          initialResume={initialResume}
+          initialPdfVersion={
+            pdfMeta && pdfMeta.byteSize > 0 ? String(pdfMeta.updatedAt.getTime()) : null
+          }
+        />
       </main>
       <FirstRunTour />
     </div>

@@ -47,8 +47,8 @@ export function EmptyResumeState({
         Add your résumé to start matching
       </h1>
       <p className="mt-3 text-[15px] text-muted">
-        We read skills, roles, and dates from it, then show the parsed document
-        on the right.
+        We read skills, roles, and dates from it. A PDF appears on the right as
+        the original pages; a DOCX is shown as a parsed document.
       </p>
       <label
         htmlFor="resume-upload"

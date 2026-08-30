@@ -2,16 +2,20 @@
 
 import { parseResumeAction } from "@/app/actions/resume";
 import { EmptyResumeState } from "@/app/home/empty-resume-state";
+import { PdfPreview } from "@/app/home/pdf-preview";
 import { ResumePreview } from "@/app/home/resume-preview";
 import type { ParsedResume } from "@/lib/resume/types";
 import { useState } from "react";
 
 export function ResumeWorkspace({
   initialResume,
+  initialPdfVersion,
 }: {
   initialResume: ParsedResume | null;
+  initialPdfVersion: string | null;
 }) {
   const [resume, setResume] = useState<ParsedResume | null>(initialResume);
+  const [pdfVersion, setPdfVersion] = useState<string | null>(initialPdfVersion);
   const [fileName, setFileName] = useState<string | null>(initialResume?.fileName ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -28,12 +32,15 @@ export function ResumeWorkspace({
       const result = await parseResumeAction(formData);
       if (!result.ok) {
         setResume(null);
+        setPdfVersion(null);
         setError(result.error);
         return;
       }
       setResume(result.resume);
+      setPdfVersion(result.pdfVersion);
     } catch {
       setResume(null);
+      setPdfVersion(null);
       setError("We could not read that résumé.");
     } finally {
       setPending(false);
@@ -51,12 +58,26 @@ export function ResumeWorkspace({
           onInvalid={(message) => {
             setFileName(null);
             setResume(null);
+            setPdfVersion(null);
             setError(message);
           }}
         />
       </section>
-      <section className="min-h-0 overflow-auto bg-card">
-        <ResumePreview resume={resume} />
+      <section className="min-h-0 overflow-hidden bg-card">
+        {resume && pdfVersion ? (
+          // The version in the URL makes a re-upload refetch rather than
+          // re-render the PDF the browser already has.
+          <PdfPreview
+            src={`/api/resume/file?v=${pdfVersion}`}
+            fileName={resume.fileName}
+            links={resume.links}
+            email={resume.email}
+          />
+        ) : (
+          <div className="h-full overflow-auto">
+            <ResumePreview resume={resume} />
+          </div>
+        )}
       </section>
     </div>
   );
