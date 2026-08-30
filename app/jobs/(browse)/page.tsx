@@ -7,6 +7,7 @@ import {
   countPostedWithin,
   loadCandidateProfile,
   loadFeed,
+  withoutDescriptions,
   type FeedFilters,
 } from "@/lib/matching/feed";
 import type { WorkMode } from "@/lib/matching/extract";
@@ -32,12 +33,12 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
     min: first(searchParams.min),
   };
 
-  const [profile, savedKeys, sources, savedCount] = await Promise.all([
-    loadCandidateProfile(userId),
-    listSavedKeys(userId),
-    listSources(),
-    countSavedJobs(userId),
-  ]);
+  const profilePromise = loadCandidateProfile(userId);
+  const savedKeysPromise = listSavedKeys(userId);
+  const sourcesPromise = listSources();
+  const savedCountPromise = countSavedJobs(userId);
+
+  const [profile, savedKeys] = await Promise.all([profilePromise, savedKeysPromise]);
 
   if (!profile) {
     return (
@@ -72,8 +73,12 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
     minScore: values.min ? Number.parseInt(values.min, 10) : null,
   };
 
-  const results = await loadFeed(profile, savedKeys, filters);
-  const visible = results.slice(0, PAGE_SIZE);
+  const [results, sources, savedCount] = await Promise.all([
+    loadFeed(profile, savedKeys, filters),
+    sourcesPromise,
+    savedCountPromise,
+  ]);
+  const visible = withoutDescriptions(results.slice(0, PAGE_SIZE));
   const strong = results.filter((item) => item.match.score >= 80).length;
   const hasFilters = Object.values(values).some(Boolean);
 

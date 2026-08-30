@@ -52,7 +52,7 @@ JSON shape:
 }
 
 Résumé text:
-${clip(resume.rawText || JSON.stringify(resume.sections), 14000)}
+${clip(resume.rawText || JSON.stringify(resume.sections), 8000)}
 `,
   );
 

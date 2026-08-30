@@ -1,7 +1,8 @@
 import { getDb } from "@/lib/db";
 import { job, savedJob } from "@/lib/db/schema";
-import type { JobRow } from "@/lib/matching/job";
+import type { JobRow, JobScoreRow } from "@/lib/matching/job";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 /** Must mirror `job_search_idx` exactly for the index to be used. */
 const SEARCH_VECTOR = sql`to_tsvector('english', coalesce(${job.position}, '') || ' ' || coalesce(${job.company}, '') || ' ' || coalesce(${job.description}, ''))`;
@@ -28,13 +29,16 @@ export type JobPoolOptions = {
 /**
  * Pull a bounded candidate set for in-memory scoring. Scoring every one of the
  * ~6k rows per request would be wasteful, so Postgres narrows first.
+ *
+ * Descriptions are clipped in SQL: a full HTML blob per row dominates transfer
+ * and the skill extractor only needs the opening of the posting.
  */
 export async function fetchJobPool({
   query,
   skillTerms = [],
   source,
-  limit = 400,
-}: JobPoolOptions): Promise<JobRow[]> {
+  limit = 200,
+}: JobPoolOptions): Promise<JobScoreRow[]> {
   const conditions: SQL[] = [];
 
   const userQuery = query?.trim() ? query.trim() : null;
@@ -54,7 +58,23 @@ export async function fetchJobPool({
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   return getDb()
-    .select()
+    .select({
+      source: job.source,
+      id: job.id,
+      slug: job.slug,
+      company: job.company,
+      companyLogo: job.companyLogo,
+      logo: job.logo,
+      position: job.position,
+      tags: job.tags,
+      description: sql<string | null>`left(${job.description}, 5000)`,
+      location: job.location,
+      applyUrl: job.applyUrl,
+      url: job.url,
+      date: job.date,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+    })
     .from(job)
     .where(where)
     .orderBy(sql`${job.date} desc nulls last`)
@@ -71,14 +91,20 @@ export async function getJob(source: string, id: string): Promise<JobRow | null>
   return row ?? null;
 }
 
-export async function listSources() {
-  const rows = await getDb()
-    .select({ source: job.source, count: sql<number>`count(*)::int` })
-    .from(job)
-    .groupBy(job.source)
-    .orderBy(desc(sql`count(*)`));
+const loadSources = unstable_cache(
+  async () => {
+    return getDb()
+      .select({ source: job.source, count: sql<number>`count(*)::int` })
+      .from(job)
+      .groupBy(job.source)
+      .orderBy(desc(sql`count(*)`));
+  },
+  ["job-sources"],
+  { revalidate: 120 },
+);
 
-  return rows;
+export function listSources() {
+  return loadSources();
 }
 
 export async function countJobs() {

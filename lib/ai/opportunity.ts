@@ -70,10 +70,7 @@ ${flattenResume(resume)
   .filter((line) => line.display === "body" || line.display === "bullet" || line.display === "tags")
   .map((line) => `- ${line.text}`)
   .join("\n")
-  .slice(0, 8000)}
-
-Résumé text:
-${clip(resume.rawText, 6000)}
+  .slice(0, 5000)}
 
 Job:
 Company: ${job.company}
@@ -85,7 +82,7 @@ Heuristic match score: ${match.score}%
 Heuristic summary: ${match.summary}
 
 Job description:
-${clip(job.description, 9000)}
+${clip(job.description, 4500)}
 `,
   );
 

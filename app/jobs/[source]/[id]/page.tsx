@@ -6,13 +6,14 @@ import { SaveButton } from "@/components/save-button";
 import { requireUserId } from "@/lib/auth/session";
 import { countOpenRoles, getCompanyIntel } from "@/lib/db/company";
 import { getJob, listSavedKeys } from "@/lib/db/jobs";
-import { getUserResume } from "@/lib/db/resume";
+import { getUserResumeAndProfile } from "@/lib/db/profile";
 import { formatSalary, freshness } from "@/lib/format";
-import { loadCandidateProfile } from "@/lib/matching/feed";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
 import { ROLE_LABELS, SENIORITY_LABELS, skillLabel } from "@/lib/matching/taxonomy";
 import { toParagraphs } from "@/lib/matching/text";
+import { deriveCandidateProfile } from "@/lib/profile/derive";
+import { toCandidateProfile } from "@/lib/profile/hydrate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -27,31 +28,33 @@ const WORK_MODE_LABELS = {
 export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id]">) {
   const userId = await requireUserId();
   const { source, id } = await props.params;
+  const decodedSource = decodeURIComponent(source);
+  const decodedId = decodeURIComponent(id);
 
-  const row = await getJob(decodeURIComponent(source), decodeURIComponent(id));
+  const [row, stored, savedKeys] = await Promise.all([
+    getJob(decodedSource, decodedId),
+    getUserResumeAndProfile(userId),
+    listSavedKeys(userId),
+  ]);
   if (!row) {
     notFound();
   }
-
-  const profile = await loadCandidateProfile(userId);
-  if (!profile) {
+  if (!stored.resume) {
     redirect("/home");
   }
 
-  const [savedKeys, company, resume] = await Promise.all([
-    listSavedKeys(userId),
+  const profile = stored.profile
+    ? toCandidateProfile(stored.profile, stored.resume)
+    : deriveCandidateProfile(stored.resume);
+  const resume = stored.resume;
+  const companyPromise = Promise.all([
     getCompanyIntel(row.company, row.ycSlug ?? null),
-    getUserResume(userId),
+    countOpenRoles(row.company ?? "", row.ycSlug),
   ]);
-  if (!resume) {
-    redirect("/home");
-  }
   const job = normalizeJob(row);
   const match = scoreJob(profile, job);
   const saved = savedKeys.has(jobKey(job.source, job.id));
-  const openRoles = company
-    ? await countOpenRoles(company.company, company.ycSlug)
-    : 0;
+  const [company, openRoles] = await companyPromise;
 
   const posted = freshness(job.date);
   const salary = formatSalary(job.salaryMin, job.salaryMax);

@@ -4,7 +4,7 @@ import { deriveCandidateProfile } from "@/lib/profile/derive";
 import { toCandidateProfile } from "@/lib/profile/hydrate";
 import type { CandidateProfile } from "@/lib/profile/types";
 import type { WorkMode } from "./extract";
-import { jobKey, normalizeJob, type JobRow, type NormalizedJob } from "./job";
+import { jobKey, normalizeJob, type JobScoreRow, type NormalizedJob } from "./job";
 import { scoreJob, type MatchResult } from "./score";
 import type { SeniorityLevel } from "./taxonomy";
 
@@ -32,7 +32,7 @@ export async function loadCandidateProfile(userId: string): Promise<CandidatePro
 }
 
 export function scoreAndRank(
-  rows: JobRow[],
+  rows: JobScoreRow[],
   profile: CandidateProfile,
   savedKeys: Set<string>,
   filters: FeedFilters = {},
@@ -83,7 +83,7 @@ export function poolOptionsFor(
     query: filters.query ?? null,
     source: filters.source ?? null,
     skillTerms: profile.primarySkills.slice(0, 8).map((skill) => skill.label),
-    limit: 400,
+    limit: 200,
   };
 }
 
@@ -99,4 +99,13 @@ export async function loadFeed(
 ) {
   const rows = await fetchJobPool(poolOptionsFor(profile, filters));
   return scoreAndRank(rows, profile, savedKeys, filters);
+}
+
+/** Job cards never render the description; dropping it keeps the RSC payload small. */
+export function withoutDescriptions<T extends ScoredJob>(results: T[]): T[] {
+  return results.map((item) =>
+    item.job.description
+      ? { ...item, job: { ...item.job, description: "" } }
+      : item,
+  );
 }

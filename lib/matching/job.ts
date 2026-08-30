@@ -13,6 +13,26 @@ import { htmlToText } from "./text";
 
 export type JobRow = typeof job.$inferSelect;
 
+/** Columns the matcher actually reads. Feed queries skip the rest. */
+export type JobScoreRow = Pick<
+  JobRow,
+  | "source"
+  | "id"
+  | "slug"
+  | "company"
+  | "companyLogo"
+  | "logo"
+  | "position"
+  | "tags"
+  | "description"
+  | "location"
+  | "applyUrl"
+  | "url"
+  | "date"
+  | "salaryMin"
+  | "salaryMax"
+>;
+
 export type NormalizedJob = {
   source: string;
   id: string;
@@ -41,7 +61,7 @@ export function jobKey(source: string, id: string) {
   return `${source}:${id}`;
 }
 
-export function normalizeJob(row: JobRow): NormalizedJob {
+export function normalizeJob(row: JobScoreRow): NormalizedJob {
   const description = row.description ? htmlToText(row.description) : "";
   const position = row.position ?? "Untitled role";
   const tags = row.tags ?? [];

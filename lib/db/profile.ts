@@ -4,8 +4,9 @@ import { isStoredProfile, type StoredProfile } from "@/lib/profile/stored";
 import { asParsedResume } from "@/lib/resume/stored";
 import type { ParsedResume } from "@/lib/resume/types";
 import { eq } from "drizzle-orm";
+import { cache } from "react";
 
-export async function getUserResumeAndProfile(userId: string) {
+export const getUserResumeAndProfile = cache(async (userId: string) => {
   const [row] = await getDb()
     .select({ resume: users.resume, profile: users.profile })
     .from(users)
@@ -16,7 +17,7 @@ export async function getUserResumeAndProfile(userId: string) {
     resume: asParsedResume(row?.resume ?? null),
     profile: isStoredProfile(row?.profile) ? row.profile : null,
   };
-}
+});
 
 export async function saveUserProfile(userId: string, profile: StoredProfile) {
   await getDb()

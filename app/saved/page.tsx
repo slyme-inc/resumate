@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/app-header";
 import { JobCard } from "@/components/job-card";
 import { requireUserId } from "@/lib/auth/session";
 import { listSavedJobs } from "@/lib/db/jobs";
-import { loadCandidateProfile } from "@/lib/matching/feed";
+import { loadCandidateProfile, withoutDescriptions } from "@/lib/matching/feed";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
 import Link from "next/link";
@@ -14,18 +14,20 @@ export default async function SavedPage() {
     listSavedJobs(userId),
   ]);
 
-  const items = profile
-    ? rows.map((row) => {
-        const job = normalizeJob(row.job);
-        return {
-          key: jobKey(job.source, job.id),
-          job,
-          match: scoreJob(profile, job),
-          saved: true,
-          savedScore: row.matchScore,
-        };
-      })
-    : [];
+  const items = withoutDescriptions(
+    profile
+      ? rows.map((row) => {
+          const job = normalizeJob(row.job);
+          return {
+            key: jobKey(job.source, job.id),
+            job,
+            match: scoreJob(profile, job),
+            saved: true,
+            savedScore: row.matchScore,
+          };
+        })
+      : [],
+  );
 
   return (
     <div className="flex min-h-dvh flex-col">

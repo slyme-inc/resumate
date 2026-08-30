@@ -8,6 +8,7 @@ import { deleteResumeFile, saveResumeFile } from "@/lib/db/resume-file";
 import { heuristicStoredProfile } from "@/lib/profile/hydrate";
 import { parseResumeFile, type ParsedResume } from "@/lib/resume/parse";
 import { createClient } from "@/lib/supabase/server";
+import { after } from "next/server";
 
 export type ParseResumeResult =
   | { ok: true; resume: ParsedResume; pdfVersion: string | null }
@@ -42,11 +43,13 @@ export async function parseResumeAction(formData: FormData): Promise<ParseResume
     await saveUserProfile(userId, heuristicStoredProfile(resume));
 
     if (isGeminiConfigured()) {
-      try {
-        await saveUserProfile(userId, await extractProfileWithGemini(resume));
-      } catch {
-        // Heuristic profile is already stored; Gemini can be retried from /profile.
-      }
+      after(async () => {
+        try {
+          await saveUserProfile(userId, await extractProfileWithGemini(resume));
+        } catch {
+          // Heuristic profile is already stored; Gemini can be retried from /profile.
+        }
+      });
     }
 
     if (!isPdf(file.name)) {

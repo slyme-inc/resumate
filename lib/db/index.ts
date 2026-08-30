@@ -37,7 +37,9 @@ function createClient() {
   return postgres(getDatabaseUrl(), {
     prepare: false,
     ssl: "require",
-    max: 1,
+    // A single connection serializes every query. Pages issue 3–4 reads at
+    // once; three slots let Promise.all actually overlap on Supavisor.
+    max: 3,
     // Supavisor transaction mode can reassign the backend between pipelined
     // queries, which silently loses the response and leaves the promise
     // pending forever. Default is 100.

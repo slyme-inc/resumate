@@ -1,17 +1,12 @@
 import { getDb } from "@/lib/db";
+import { getUserResumeAndProfile } from "@/lib/db/profile";
 import { users } from "@/lib/db/schema";
-import { asParsedResume } from "@/lib/resume/stored";
 import type { ParsedResume } from "@/lib/resume/types";
 import { eq } from "drizzle-orm";
 
 export async function getUserResume(userId: string) {
-  const [row] = await getDb()
-    .select({ resume: users.resume })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  return asParsedResume(row?.resume ?? null);
+  const { resume } = await getUserResumeAndProfile(userId);
+  return resume;
 }
 
 export async function saveUserResume(userId: string, resume: ParsedResume) {

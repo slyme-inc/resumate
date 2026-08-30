@@ -137,3 +137,149 @@ export function ProfileFormSkeleton() {
   );
 }
 
+export function JobCardSkeleton() {
+  return (
+    <div className="rounded-[14px] border border-line bg-card p-5">
+      <div className="flex items-start gap-4">
+        <Skeleton width={56} height={56} borderRadius={14} />
+        <div className="min-w-0 flex-1">
+          <Skeleton width="62%" height={22} />
+          <div className="mt-2">
+            <Skeleton width="28%" height={14} />
+          </div>
+          <div className="mt-3">
+            <Skeleton count={2} height={14} className="mb-2" />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Skeleton width={72} height={24} borderRadius={999} />
+            <Skeleton width={88} height={24} borderRadius={999} />
+            <Skeleton width={64} height={24} borderRadius={999} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function JobsFeedSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading matches</span>
+      <Skeleton width={280} height={36} />
+      <div className="mt-3 max-w-2xl">
+        <Skeleton count={2} height={14} className="mb-2" />
+      </div>
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+        <Card>
+          <Skeleton width={48} height={28} />
+          <div className="mt-2">
+            <Skeleton width={96} height={10} />
+          </div>
+        </Card>
+        <Card>
+          <Skeleton width={48} height={28} />
+          <div className="mt-2">
+            <Skeleton width={96} height={10} />
+          </div>
+        </Card>
+        <Card>
+          <Skeleton width={48} height={28} />
+          <div className="mt-2">
+            <Skeleton width={72} height={10} />
+          </div>
+        </Card>
+      </div>
+      <div className="mt-4 rounded-[14px] border border-line bg-card p-5">
+        <Skeleton height={42} />
+      </div>
+      <div className="mt-6 space-y-4">
+        <JobCardSkeleton />
+        <JobCardSkeleton />
+        <JobCardSkeleton />
+        <JobCardSkeleton />
+      </div>
+    </div>
+  );
+}
+
+export function SavedFeedSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading saved roles</span>
+      <Skeleton width={120} height={36} />
+      <div className="mt-3">
+        <Skeleton width="40%" height={14} />
+      </div>
+      <div className="mt-8 space-y-4">
+        <JobCardSkeleton />
+        <JobCardSkeleton />
+        <JobCardSkeleton />
+      </div>
+    </div>
+  );
+}
+
+export function HomeWorkspaceSkeleton() {
+  return (
+    <div className="grid min-h-0 flex-1 lg:grid-cols-2" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading résumé workspace</span>
+      <section className="flex items-center justify-center border-b border-line px-6 py-12 lg:border-b-0 lg:border-r">
+        <div className="w-full max-w-sm">
+          <Skeleton height={160} borderRadius={14} />
+          <div className="mt-4">
+            <Skeleton height={14} />
+            <Skeleton height={14} width="70%" className="mt-2" />
+          </div>
+        </div>
+      </section>
+      <section className="min-h-0 overflow-hidden bg-card">
+        <ResumePreviewSkeleton />
+      </section>
+    </div>
+  );
+}
+
+export function JobDetailSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading role</span>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:w-1/2">
+        <Skeleton width={140} height={12} />
+        <div className="mt-5 flex items-start gap-5">
+          <Skeleton width={56} height={56} borderRadius={14} />
+          <div className="min-w-0 flex-1">
+            <Skeleton width="70%" height={32} />
+            <div className="mt-3">
+              <Skeleton width="30%" height={16} />
+            </div>
+          </div>
+        </div>
+        <div className="mt-8">
+          <OpportunityIntelSkeleton />
+        </div>
+      </div>
+      <aside className="flex min-h-[55vh] flex-1 flex-col border-t border-line bg-card lg:min-h-0 lg:w-1/2 lg:border-t-0 lg:border-l">
+        <ResumePreviewSkeleton />
+      </aside>
+    </div>
+  );
+}
+
+export function ProfilePageSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading profile</span>
+      <Skeleton width={180} height={12} />
+      <div className="mt-2">
+        <Skeleton width={240} height={36} />
+      </div>
+      <div className="mt-3 max-w-xl">
+        <Skeleton count={2} height={14} className="mb-2" />
+      </div>
+      <div className="mt-8 rounded-[14px] border border-line bg-card p-6">
+        <ProfileFormSkeleton />
+      </div>
+    </div>
+  );
+}
+

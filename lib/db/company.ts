@@ -78,10 +78,14 @@ export async function countOpenRoles(company: string, ycSlug: string | null) {
     }
   }
 
+  if (!company.trim()) {
+    return 0;
+  }
+
   const [byName] = await getDb()
     .select({ count: sql<number>`count(*)::int` })
     .from(job)
-    .where(sql`lower(trim(${job.company})) = ${company.trim().toLowerCase()}`);
+    .where(eq(job.company, company));
 
   return byName?.count ?? 0;
 }

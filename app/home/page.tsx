@@ -7,6 +7,8 @@ import { getUserResume } from "@/lib/db/resume";
 import { getResumeFileMeta } from "@/lib/db/resume-file";
 import { loadCandidateProfile } from "@/lib/matching/feed";
 
+export const maxDuration = 30;
+
 export default async function Home() {
   const userId = await requireUserId();
   const [initialResume, pdfMeta, profile] = await Promise.all([
