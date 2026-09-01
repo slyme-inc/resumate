@@ -223,6 +223,72 @@ export function JobsSessionSkeleton() {
   );
 }
 
+export function StartupNewsSkeleton() {
+  return (
+    <Themed>
+      <div className="mt-6" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading startup news</span>
+        <Skeleton width={168} height={12} />
+        <div className="mt-4 space-y-4">
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+        </div>
+      </div>
+    </Themed>
+  );
+}
+
+export function StartupSessionSkeleton() {
+  return (
+    <Themed>
+      <div aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading startup news</span>
+        <Skeleton width={160} height={12} />
+        <div className="mt-2">
+          <Skeleton width={220} height={36} />
+        </div>
+        <div className="mt-3 max-w-2xl">
+          <Skeleton count={2} height={14} className="mb-2" />
+        </div>
+        <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
+          <Skeleton height={42} />
+        </div>
+        <div className="mt-6 space-y-4">
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+        </div>
+      </div>
+    </Themed>
+  );
+}
+
+export function OssSessionSkeleton() {
+  return (
+    <Themed>
+      <div aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading open source repositories</span>
+        <Skeleton width={180} height={12} />
+        <div className="mt-2">
+          <Skeleton width={260} height={36} />
+        </div>
+        <div className="mt-3 max-w-2xl">
+          <Skeleton count={2} height={14} className="mb-2" />
+        </div>
+        <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
+          <Skeleton height={42} />
+        </div>
+        <div className="mt-6 space-y-4">
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+        </div>
+      </div>
+    </Themed>
+  );
+}
+
 export function CompanyIntelSkeleton() {
   return (
     <Themed>

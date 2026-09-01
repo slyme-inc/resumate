@@ -12,6 +12,7 @@ import {
 } from "@/lib/matching/feed";
 import type { WorkMode } from "@/lib/matching/extract";
 import { SENIORITY_LABELS, type SeniorityLevel } from "@/lib/matching/taxonomy";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -24,6 +25,11 @@ function first(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
 }
 
+function pageFromSearchParams(value: string | string[] | undefined) {
+  const parsed = Number.parseInt(first(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
 function filtersFromValues(values: FilterValues): FeedFilters {
   return {
     query: values.q || null,
@@ -33,7 +39,12 @@ function filtersFromValues(values: FilterValues): FeedFilters {
   };
 }
 
-function valuesFromSearchParams(searchParams: { q?: string | string[]; mode?: string | string[]; seniority?: string | string[]; min?: string | string[] }): FilterValues {
+function valuesFromSearchParams(searchParams: {
+  q?: string | string[];
+  mode?: string | string[];
+  seniority?: string | string[];
+  min?: string | string[];
+}): FilterValues {
   return {
     q: first(searchParams.q),
     mode: first(searchParams.mode),
@@ -42,7 +53,88 @@ function valuesFromSearchParams(searchParams: { q?: string | string[]; mode?: st
   };
 }
 
-async function JobsFeed({ userId, values }: { userId: string; values: FilterValues }) {
+function jobsListHref(values: FilterValues, page: number) {
+  const query: Record<string, string> = {};
+  if (values.q) query.q = values.q;
+  if (values.mode) query.mode = values.mode;
+  if (values.seniority) query.seniority = values.seniority;
+  if (values.min) query.min = values.min;
+  if (page > 1) query.page = String(page);
+  return Object.keys(query).length > 0 ? { pathname: "/jobs" as const, query } : "/jobs";
+}
+
+const PAGE_BTN =
+  "inline-flex min-w-10 items-center justify-center rounded-[10px] border px-3 py-2 text-sm font-semibold tracking-tight transition-colors duration-150";
+
+function JobsPagination({
+  page,
+  pageCount,
+  values,
+}: {
+  page: number;
+  pageCount: number;
+  values: FilterValues;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  const pages = Array.from({ length: pageCount }, (_, index) => index + 1);
+
+  return (
+    <nav aria-label="Job list pages" className="mt-8 flex flex-wrap items-center justify-center gap-2">
+      {page > 1 ? (
+        <Link href={jobsListHref(values, page - 1)} className={`${PAGE_BTN} border-line-strong text-ink hover:bg-card`}>
+          Previous
+        </Link>
+      ) : (
+        <span className={`${PAGE_BTN} border-line text-faint`} aria-disabled="true">
+          Previous
+        </span>
+      )}
+
+      <ol className="flex flex-wrap items-center justify-center gap-1">
+        {pages.map((number) => (
+          <li key={number}>
+            {number === page ? (
+              <span aria-current="page" className={`${PAGE_BTN} border-forest bg-forest text-paper`}>
+                {number}
+              </span>
+            ) : (
+              <Link
+                href={jobsListHref(values, number)}
+                aria-label={`Page ${number}`}
+                className={`${PAGE_BTN} border-line-strong text-ink hover:bg-card`}
+              >
+                {number}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {page < pageCount ? (
+        <Link href={jobsListHref(values, page + 1)} className={`${PAGE_BTN} border-line-strong text-ink hover:bg-card`}>
+          Next
+        </Link>
+      ) : (
+        <span className={`${PAGE_BTN} border-line text-faint`} aria-disabled="true">
+          Next
+        </span>
+      )}
+    </nav>
+  );
+}
+
+async function JobsFeed({
+  userId,
+  values,
+  page: requestedPage,
+}: {
+  userId: string;
+  values: FilterValues;
+  page: number;
+}) {
   const [profile, savedKeys] = await Promise.all([
     loadCandidateProfile(userId),
     listSavedKeys(userId),
@@ -58,14 +150,19 @@ async function JobsFeed({ userId, values }: { userId: string; values: FilterValu
     savedKeys,
     filtersFromValues(values),
   );
-  const visible = items.slice(0, PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(requestedPage, pageCount);
+  const start = (page - 1) * PAGE_SIZE;
+  const visible = items.slice(start, start + PAGE_SIZE);
+  const from = total === 0 ? 0 : start + 1;
+  const to = start + visible.length;
   const strong = items.filter((item) => item.match.score >= 80).length;
 
   return (
     <>
       <div className="mt-6 flex items-baseline justify-between">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-          {total === 0 ? "No matches" : `Showing ${visible.length} of ${total}`}
+          {total === 0 ? "No matches" : `Showing ${from}–${to} of ${total}`}
           {strong > 0 ? ` · ${strong} ${strong === 1 ? "strong fit" : "strong fits"}` : ""}
         </p>
       </div>
@@ -84,11 +181,7 @@ async function JobsFeed({ userId, values }: { userId: string; values: FilterValu
         </div>
       )}
 
-      {total > visible.length ? (
-        <p className="mt-6 text-center font-mono text-[11px] text-faint">
-          Narrow the filters to surface more of the {total - visible.length} remaining roles.
-        </p>
-      ) : null}
+      <JobsPagination page={page} pageCount={pageCount} values={values} />
     </>
   );
 }
@@ -100,6 +193,7 @@ async function JobsSession({
 }) {
   const [params, userId] = await Promise.all([searchParams, requireUserId()]);
   const values = valuesFromSearchParams(params);
+  const page = pageFromSearchParams(params.page);
   const hasFilters = Object.values(values).some(Boolean);
 
   return (
@@ -108,7 +202,7 @@ async function JobsSession({
         <JobFilters values={values} hasFilters={hasFilters} />
       </div>
       <Suspense fallback={<JobsListSkeleton />}>
-        <JobsFeed userId={userId} values={values} />
+        <JobsFeed userId={userId} values={values} page={page} />
       </Suspense>
     </>
   );

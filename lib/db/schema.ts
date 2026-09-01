@@ -225,6 +225,24 @@ export const fundingRound = pgTable(
   (table) => [primaryKey({ columns: [table.source, table.id] })],
 );
 
+/**
+ * Public GitHub repos collected for YC companies. Read-only in the app;
+ * collectors write it.
+ */
+export const ossRepo = pgTable("oss_repo", {
+  id: text("id").primaryKey(),
+  company: text("company"),
+  ycSlug: text("yc_slug"),
+  repoUrl: text("repo_url"),
+  fullName: text("full_name"),
+  description: text("description"),
+  stars: integer("stars"),
+  language: text("language"),
+  pushedAt: timestamp("pushed_at", { withTimezone: true, mode: "date" }),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true, mode: "date" }),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true, mode: "date" }),
+});
+
 export const opportunityInsight = pgTable(
   "opportunity_insight",
   {

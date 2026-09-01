@@ -15,12 +15,12 @@ import { formatSalary, freshness } from "@/lib/format";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
 import { ROLE_LABELS, SENIORITY_LABELS, skillLabel } from "@/lib/matching/taxonomy";
-import { toParagraphs } from "@/lib/matching/text";
+import { paragraphKind, stripListPrefix, toParagraphs } from "@/lib/matching/text";
 import { deriveCandidateProfile } from "@/lib/profile/derive";
 import { toCandidateProfile } from "@/lib/profile/hydrate";
 import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 export const maxDuration = 60;
 
@@ -29,6 +29,60 @@ const WORK_MODE_LABELS = {
   hybrid: "Hybrid",
   onsite: "On-site",
 } as const;
+
+function DescriptionBody({ paragraphs }: { paragraphs: string[] }) {
+  const nodes: ReactNode[] = [];
+
+  for (let index = 0; index < paragraphs.length; ) {
+    const paragraph = paragraphs[index];
+    if (!paragraph) {
+      break;
+    }
+    const kind = paragraphKind(paragraph);
+
+    if (kind === "list") {
+      const items: string[] = [];
+      const start = index;
+      while (index < paragraphs.length) {
+        const item = paragraphs[index];
+        if (!item || paragraphKind(item) !== "list") {
+          break;
+        }
+        items.push(stripListPrefix(item));
+        index += 1;
+      }
+      nodes.push(
+        <ul
+          key={start}
+          className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-text"
+        >
+          {items.map((item, itemIndex) => (
+            <li key={itemIndex}>{item}</li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    nodes.push(
+      kind === "heading" ? (
+        <p
+          key={index}
+          className="pt-1 text-[15px] font-semibold tracking-tight text-ink"
+        >
+          {paragraph}
+        </p>
+      ) : (
+        <p key={index} className="text-[15px] leading-relaxed text-text">
+          {paragraph}
+        </p>
+      ),
+    );
+    index += 1;
+  }
+
+  return nodes;
+}
 
 export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id]">) {
   const { userId } = await requireResume();
@@ -216,11 +270,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
               Job description
             </h2>
             <div className="mt-4 space-y-3">
-              {paragraphs.map((paragraph, index) => (
-                <p key={index} className="text-[15px] leading-relaxed text-text">
-                  {paragraph}
-                </p>
-              ))}
+              <DescriptionBody paragraphs={paragraphs} />
             </div>
           </section>
         ) : null}
