@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Vendored pdf.js runtime assets, copied in by postinstall.
-    "public/pdfjs/**",
   ]),
 ]);
 

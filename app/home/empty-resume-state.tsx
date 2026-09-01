@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const ACCEPT_EXTENSIONS = new Set([".pdf", ".doc", ".docx"]);
+const ACCEPT_EXTENSIONS = new Set([".docx"]);
 
 function isResumeFile(file: File) {
   const name = file.name.toLowerCase();
@@ -17,6 +17,9 @@ type EmptyResumeStateProps = {
   pending: boolean;
   onFile: (file: File) => void;
   onInvalid: (message: string) => void;
+  heading?: string;
+  description?: string;
+  inputId?: string;
 };
 
 export function EmptyResumeState({
@@ -25,6 +28,9 @@ export function EmptyResumeState({
   pending,
   onFile,
   onInvalid,
+  heading = "Add your résumé to start matching",
+  description = "We read skills, roles, and dates from it, then send you to jobs ranked against that work.",
+  inputId = "resume-upload",
 }: EmptyResumeStateProps) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -34,7 +40,7 @@ export function EmptyResumeState({
     }
 
     if (!isResumeFile(file)) {
-      onInvalid("Use a PDF or DOCX file.");
+      onInvalid("Use a Word (.docx) file.");
       return;
     }
 
@@ -44,14 +50,11 @@ export function EmptyResumeState({
   return (
     <div className="w-full max-w-md rounded-[14px] border border-line bg-card px-8 py-10 shadow-[0_1px_2px_rgba(18,26,23,0.04),0_12px_32px_rgba(18,26,23,0.06)]">
       <h1 className="font-serif text-4xl font-medium tracking-tight text-ink">
-        Add your résumé to start matching
+        {heading}
       </h1>
-      <p className="mt-3 text-[15px] text-muted">
-        We read skills, roles, and dates from it. A PDF appears on the right as
-        the original pages; a DOCX is shown as a parsed document.
-      </p>
+      <p className="mt-3 text-[15px] text-muted">{description}</p>
       <label
-        htmlFor="resume-upload"
+        htmlFor={inputId}
         onDragEnter={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -78,9 +81,9 @@ export function EmptyResumeState({
         } ${pending ? "pointer-events-none opacity-70" : ""}`}
       >
         <input
-          id="resume-upload"
+          id={inputId}
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="sr-only"
           disabled={pending}
           onChange={(event) => {
@@ -92,7 +95,7 @@ export function EmptyResumeState({
           {pending ? "Analyzing your experience…" : "Upload résumé"}
         </span>
         <span className="mt-3 block text-sm text-muted">
-          PDF or DOCX · drop a file here
+          Word (.docx) · drop a file here
         </span>
         {fileName ? (
           <span className="mt-3 block font-mono text-sm text-ink">{fileName}</span>

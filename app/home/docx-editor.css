@@ -1,0 +1,133 @@
+.resume-docx-editor {
+  --sd-bg: #f3f3f3;
+  --sd-tracked-changes-insert-background: #1f6feb22;
+  --sd-tracked-changes-insert-background-focused: #1f6feb44;
+  --sd-tracked-changes-insert-border: #1f6feb;
+  --sd-tracked-changes-insert-border-width: 1px;
+  --sd-tracked-changes-insert-text: currentColor;
+  --sd-tracked-changes-insert-decoration-line: none;
+  --sd-tracked-changes-delete-background: #cb0e4722;
+  --sd-tracked-changes-delete-background-focused: #cb0e4744;
+  --sd-tracked-changes-delete-border: #cb0e47;
+  --sd-tracked-changes-delete-border-width: 1px;
+  --sd-tracked-changes-delete-text: currentColor;
+  --sd-tracked-changes-delete-decoration-line: line-through;
+  --sd-tracked-changes-delete-decoration-thickness: 2px;
+  background: var(--sd-bg);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* SuperDoc demo style: full dashed insert/delete boxes on inline runs. */
+.resume-docx-editor .superdoc-layout
+  :is(.track-insert-dec, .track-delete-dec).highlighted:not(.track-row-cell-dec):not(.track-cell-dec):not(
+    .superdoc-paragraph-property-review-marker
+  ):not(.superdoc-inline-image):not(.superdoc-inline-image-clip-wrapper):not(.superdoc-section-break-review-marker) {
+  box-sizing: border-box;
+  padding: 0 0.12em;
+  color: inherit;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.resume-docx-editor .superdoc-layout
+  .track-insert-dec.highlighted:not(.track-row-cell-dec):not(.track-cell-dec):not(
+    .superdoc-paragraph-property-review-marker
+  ):not(.superdoc-inline-image):not(.superdoc-inline-image-clip-wrapper):not(.superdoc-section-break-review-marker) {
+  border: 1px dashed var(--sd-tracked-changes-insert-border, #1f6feb);
+  background-color: var(--sd-tracked-changes-insert-background, #1f6feb22);
+  text-decoration: none;
+}
+
+.resume-docx-editor .superdoc-layout
+  .track-delete-dec.highlighted:not(.track-row-cell-dec):not(.track-cell-dec):not(
+    .superdoc-paragraph-property-review-marker
+  ):not(.superdoc-inline-image):not(.superdoc-inline-image-clip-wrapper):not(.superdoc-section-break-review-marker) {
+  border: 1px dashed var(--sd-tracked-changes-delete-border, #cb0e47);
+  background-color: var(--sd-tracked-changes-delete-background, #cb0e4722);
+  text-decoration: line-through solid currentColor 2px !important;
+}
+
+.resume-docx-editor .superdoc-layout
+  .track-insert-dec.highlighted.track-change-focused:not(.track-row-cell-dec):not(.track-cell-dec) {
+  border-style: dashed;
+  background-color: var(--sd-tracked-changes-insert-background-focused, #1f6feb44);
+}
+
+.resume-docx-editor .superdoc-layout
+  .track-delete-dec.highlighted.track-change-focused:not(.track-row-cell-dec):not(.track-cell-dec) {
+  border-style: dashed;
+  background-color: var(--sd-tracked-changes-delete-background-focused, #cb0e4744);
+}
+
+.resume-docx-editor .superdoc-layout .track-delete-dec.highlighted + .track-insert-dec.highlighted,
+.resume-docx-editor .superdoc-layout .track-insert-dec.highlighted + .track-delete-dec.highlighted {
+  margin-left: -1px;
+}
+
+.resume-docx-editor [data-highlight="yellow"],
+.resume-docx-editor span[data-highlight="yellow"] {
+  background-color: rgba(196, 161, 90, 0.38);
+  border-radius: 2px;
+}
+
+.resume-docx-editor .superdoc-react-wrapper,
+.resume-docx-editor .superdoc-react-wrapper > div,
+.resume-docx-editor .superdoc-wrapper {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+}
+
+.resume-docx-editor .superdoc-toolbar-container {
+  height: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.resume-docx-editor .superdoc-editor-container {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.resume-docx-editor .superdoc-toolbar[data-sd-part="toolbar"] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  column-gap: 2px;
+  row-gap: 2px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.resume-docx-editor .superdoc-toolbar .button-group {
+  display: contents;
+}
+
+.resume-docx-editor .superdoc-toolbar [data-sd-item="zoom"],
+.resume-docx-editor .superdoc-toolbar [data-name="zoom"] {
+  display: none !important;
+}
+
+.resume-docx-editor .right-sidebar,
+.resume-docx-editor .floating-comments,
+.resume-docx-editor .floating-comment,
+.resume-docx-editor .sidebar-container,
+.resume-docx-editor .comments-dialog,
+.resume-docx-editor .comments-list,
+.resume-docx-editor [data-sd-part="comments"] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}

@@ -13,6 +13,8 @@ export function JobWorkspace({
   company,
   resume,
   focusSkills,
+  fileSrc,
+  contentType,
   header,
   children,
 }: {
@@ -21,6 +23,8 @@ export function JobWorkspace({
   company: string;
   resume: ParsedResume;
   focusSkills: string[];
+  fileSrc: string | null;
+  contentType: string | null;
   header: ReactNode;
   children: ReactNode;
 }) {
@@ -53,13 +57,15 @@ export function JobWorkspace({
         </div>
         <div className="mt-6">{children}</div>
       </div>
-      <aside className="flex min-h-[55vh] flex-1 flex-col border-t border-line bg-card lg:min-h-0 lg:w-1/2 lg:border-t-0 lg:border-l">
+      <aside className="flex min-h-[55vh] min-w-0 flex-1 flex-col border-t border-line bg-card lg:min-h-0 lg:w-1/2 lg:border-t-0 lg:border-l">
         <ResumeTailor
           resume={resume}
           insight={insight}
           loading={loading}
           company={company}
           focusSkills={focusSkills}
+          fileSrc={fileSrc}
+          contentType={contentType}
         />
       </aside>
     </div>

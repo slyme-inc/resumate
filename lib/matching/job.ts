@@ -8,6 +8,7 @@ import {
   mergeCounts,
   type WorkMode,
 } from "./extract";
+import { extractRoleCard, isRoleCard, type RoleCard } from "./role-card";
 import { SKILL_BY_ID, type RoleFamily, type SeniorityLevel } from "./taxonomy";
 import { htmlToText } from "./text";
 
@@ -31,7 +32,9 @@ export type JobScoreRow = Pick<
   | "date"
   | "salaryMin"
   | "salaryMax"
->;
+> & {
+  roleCard?: RoleCard | null;
+};
 
 export type NormalizedJob = {
   source: string;
@@ -55,6 +58,7 @@ export type NormalizedJob = {
   seniority: SeniorityLevel;
   workMode: WorkMode;
   requiredYears: number | null;
+  roleCard: RoleCard;
 };
 
 export function jobKey(source: string, id: string) {
@@ -83,6 +87,10 @@ export function normalizeJob(row: JobScoreRow): NormalizedJob {
     .map(([id]) => id)
     .filter((id) => SKILL_BY_ID.has(id));
 
+  const roleCard = isRoleCard(row.roleCard)
+    ? row.roleCard
+    : extractRoleCard({ title: position, tags, description });
+
   return {
     source: row.source,
     id: row.id,
@@ -93,7 +101,7 @@ export function normalizeJob(row: JobScoreRow): NormalizedJob {
     applyUrl: row.applyUrl,
     url: row.url,
     companyLogo: row.companyLogo ?? row.logo,
-    date: row.date,
+    date: row.date ? new Date(row.date) : null,
     salaryMin: row.salaryMin,
     salaryMax: row.salaryMax,
     tags,
@@ -104,5 +112,6 @@ export function normalizeJob(row: JobScoreRow): NormalizedJob {
     seniority: detectSeniority(position, description),
     workMode: detectWorkMode(row.location, description, position),
     requiredYears: detectRequiredYears(description),
+    roleCard,
   };
 }

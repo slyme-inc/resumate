@@ -1,4 +1,6 @@
 import type { OpportunityInsight } from "@/lib/ai/types";
+import type { RerankCache } from "@/lib/matching/judgement";
+import type { RoleCard } from "@/lib/matching/role-card";
 import type { StoredProfile } from "@/lib/profile/stored";
 import type { ParsedResume } from "@/lib/resume/types";
 import { relations, sql } from "drizzle-orm";
@@ -75,8 +77,8 @@ export const users = pgTable(
 
 /**
  * The parsed JSON on `users.resume` is a lossy reading of the document. Keeping
- * the original bytes lets the preview render the résumé exactly as the
- * candidate laid it out, rather than an approximation of it.
+ * the original DOCX bytes lets the editor render the résumé as the candidate
+ * laid it out.
  */
 export const resumeFile = pgTable(
   "resume_file",
@@ -246,6 +248,56 @@ export const opportunityInsight = pgTable(
     }).onDelete("cascade"),
     index("opportunity_insight_user_idx").on(table.userId),
     pgPolicy("opportunity_insight_self_all", {
+      for: "all",
+      to: "authenticated",
+      using: sql`user_id = auth.uid()`,
+      withCheck: sql`user_id = auth.uid()`,
+    }),
+  ],
+).enableRLS();
+
+export const jobRoleCard = pgTable(
+  "job_role_card",
+  {
+    source: text("source").notNull(),
+    id: text("id").notNull(),
+    card: jsonb("card").$type<RoleCard>().notNull(),
+    extractedBy: text("extracted_by").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.source, table.id] }),
+    foreignKey({
+      columns: [table.source, table.id],
+      foreignColumns: [job.source, job.id],
+      name: "job_role_card_job_fk",
+    }).onDelete("cascade"),
+    pgPolicy("job_role_card_select_authenticated", {
+      for: "select",
+      to: "authenticated",
+      using: sql`true`,
+    }),
+  ],
+).enableRLS();
+
+export const matchRerank = pgTable(
+  "match_rerank",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    profileFp: text("profile_fp").notNull(),
+    keys: text("keys").notNull(),
+    payload: jsonb("payload").$type<RerankCache>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.profileFp] }),
+    pgPolicy("match_rerank_self_all", {
       for: "all",
       to: "authenticated",
       using: sql`user_id = auth.uid()`,

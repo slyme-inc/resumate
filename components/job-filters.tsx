@@ -5,7 +5,6 @@ export type FilterValues = {
   q: string;
   mode: string;
   seniority: string;
-  source: string;
   min: string;
 };
 
@@ -17,16 +16,14 @@ const LABEL_CLASS =
 
 export function JobFilters({
   values,
-  sources,
   hasFilters,
 }: {
   values: FilterValues;
-  sources: { source: string; count: number }[];
   hasFilters: boolean;
 }) {
   return (
     <form method="get" action="/jobs" className="rounded-[14px] border border-line bg-card p-5">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <label className={LABEL_CLASS} htmlFor="q">
             Search
@@ -67,25 +64,6 @@ export function JobFilters({
             {Object.entries(SENIORITY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={LABEL_CLASS} htmlFor="source">
-            Source
-          </label>
-          <select
-            id="source"
-            name="source"
-            defaultValue={values.source}
-            className={`mt-1.5 ${SELECT_CLASS}`}
-          >
-            <option value="">All sources</option>
-            {sources.map((entry) => (
-              <option key={entry.source} value={entry.source}>
-                {entry.source} ({entry.count})
               </option>
             ))}
           </select>

@@ -162,17 +162,54 @@ export function detectWorkMode(
   return locationText ? "onsite" : "onsite";
 }
 
+const EDUCATION_LINE =
+  /\b(education|university|college|bachelor|master|b\.s\.?|m\.s\.?|b\.tech|m\.tech|degree|gpa|graduat|high school|class of)\b/i;
+
+function professionalText(text: string) {
+  return text
+    .split(/\n+/)
+    .filter((line) => !EDUCATION_LINE.test(line))
+    .join("\n");
+}
+
 /**
- * Résumé date ranges are the only reliable experience signal available without
- * an LLM, so span from the earliest work year to the latest (or today).
+ * Prefer explicit employment ranges (2023–Present) over "earliest year on the
+ * page," which treats a graduation year as the start of a career.
  */
 export function estimateYearsOfExperience(text: string): number | null {
   const currentYear = new Date().getFullYear();
-  const years: number[] = [];
-  const pattern = /\b(19[89]\d|20[0-4]\d)\b/g;
+  const haystack = professionalText(text);
+  const ranges: Array<{ start: number; end: number }> = [];
+  const rangePattern =
+    /\b((?:19|20)\d{2})\s*(?:[-–—]|to)\s*((?:19|20)\d{2}|present|current|now|ongoing)\b/gi;
   let match: RegExpExecArray | null;
 
-  while ((match = pattern.exec(text)) !== null) {
+  while ((match = rangePattern.exec(haystack)) !== null) {
+    const start = Number.parseInt(match[1], 10);
+    const endToken = match[2].toLowerCase();
+    const end = /^\d{4}$/.test(endToken) ? Number.parseInt(endToken, 10) : currentYear;
+    if (start >= 1990 && start <= currentYear && end >= start && end - start <= 45) {
+      ranges.push({ start, end });
+    }
+  }
+
+  if (ranges.length > 0) {
+    ranges.sort((a, b) => a.start - b.start);
+    const merged = [{ ...ranges[0] }];
+    for (const range of ranges.slice(1)) {
+      const last = merged[merged.length - 1];
+      if (range.start <= last.end) {
+        last.end = Math.max(last.end, range.end);
+      } else {
+        merged.push({ ...range });
+      }
+    }
+    return merged.reduce((sum, range) => sum + (range.end - range.start), 0);
+  }
+
+  const years: number[] = [];
+  const yearPattern = /\b(19[89]\d|20[0-4]\d)\b/g;
+  while ((match = yearPattern.exec(haystack)) !== null) {
     const year = Number.parseInt(match[1], 10);
     if (year >= 1990 && year <= currentYear) {
       years.push(year);
@@ -184,7 +221,7 @@ export function estimateYearsOfExperience(text: string): number | null {
   }
 
   const earliest = Math.min(...years);
-  const mentionsPresent = /\b(present|current|now|ongoing)\b/i.test(text);
+  const mentionsPresent = /\b(present|current|now|ongoing)\b/i.test(haystack);
   const latest = mentionsPresent ? currentYear : Math.max(...years);
   const span = latest - earliest;
 

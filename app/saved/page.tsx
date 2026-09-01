@@ -1,6 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { JobCard } from "@/components/job-card";
-import { requireUserId } from "@/lib/auth/session";
+import { requireResume } from "@/lib/auth/session";
 import { listSavedJobs } from "@/lib/db/jobs";
 import { loadCandidateProfile, withoutDescriptions } from "@/lib/matching/feed";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
@@ -8,7 +8,7 @@ import { scoreJob } from "@/lib/matching/score";
 import Link from "next/link";
 
 export default async function SavedPage() {
-  const userId = await requireUserId();
+  const { userId } = await requireResume();
   const [profile, rows] = await Promise.all([
     loadCandidateProfile(userId),
     listSavedJobs(userId),

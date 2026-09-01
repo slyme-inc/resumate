@@ -7,10 +7,13 @@ type GeminiResponse = {
   error?: { message?: string; status?: string };
 };
 
-/** Fast Flash models first. Gemini 3 thinks by default and can take tens of seconds. */
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3-flash-preview"] as const;
+/**
+ * Free-tier keys have a tiny daily cap on Gemini 3 Flash. Prefer Flash Lite,
+ * which accepts the same JSON calls with a higher request budget.
+ */
+const MODELS = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3-flash-preview"] as const;
 
-const REQUEST_TIMEOUT_MS = 12_000;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 function apiKey() {
   const key = process.env.GEMINI_API_KEY?.trim();
@@ -18,6 +21,10 @@ function apiKey() {
     throw new Error("GEMINI_API_KEY is not set.");
   }
   return key;
+}
+
+function isQuotaMessage(message: string) {
+  return /quota exceeded|resource.?exhausted|rate.?limit|too many requests/i.test(message);
 }
 
 function extractText(payload: GeminiResponse) {
@@ -37,9 +44,9 @@ function parseJson<T>(text: string): T {
   return JSON.parse(raw) as T;
 }
 
-async function generateOnce(model: string, prompt: string) {
+async function generateOnce(model: string, prompt: string, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(
@@ -56,18 +63,21 @@ async function generateOnce(model: string, prompt: string) {
           generationConfig: {
             temperature: 0.2,
             responseMimeType: "application/json",
-            maxOutputTokens: 4096,
-            ...(model === "gemini-2.0-flash"
-              ? {}
-              : { thinkingConfig: { thinkingBudget: 0 } }),
+            maxOutputTokens: 1536,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       },
     );
 
     const payload = (await response.json()) as GeminiResponse;
+    const message = payload.error?.message ?? `Gemini ${model} failed (${response.status}).`;
     if (!response.ok) {
-      throw new Error(payload.error?.message ?? `Gemini ${model} failed (${response.status}).`);
+      const error = new Error(message);
+      if (response.status === 429 || isQuotaMessage(message)) {
+        error.name = "GeminiQuotaError";
+      }
+      throw error;
     }
 
     return parseJson<unknown>(extractText(payload));
@@ -81,14 +91,25 @@ async function generateOnce(model: string, prompt: string) {
   }
 }
 
-export async function generateJson<T>(prompt: string): Promise<T> {
+export async function generateJson<T>(
+  prompt: string,
+  options?: { deadlineMs?: number },
+): Promise<T> {
   let lastError: unknown;
+  const deadline = Date.now() + (options?.deadlineMs ?? MODELS.length * REQUEST_TIMEOUT_MS);
 
   for (const model of MODELS) {
+    const remaining = deadline - Date.now();
+    if (remaining < 1500) {
+      break;
+    }
     try {
-      return (await generateOnce(model, prompt)) as T;
+      return (await generateOnce(model, prompt, Math.min(REQUEST_TIMEOUT_MS, remaining))) as T;
     } catch (error) {
       lastError = error;
+      if (error instanceof Error && (error.name === "GeminiQuotaError" || isQuotaMessage(error.message))) {
+        break;
+      }
     }
   }
 

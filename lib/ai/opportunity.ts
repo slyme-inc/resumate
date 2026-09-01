@@ -60,29 +60,30 @@ Seniority: ${stored.seniority}
 Years: ${stored.yearsOfExperience ?? "unknown"}
 Roles: ${stored.roles.join(", ")}
 Primary skills: ${stored.skills.filter((s) => s.prominence === "primary").map((s) => s.label).join(", ")}
-Secondary skills: ${stored.skills.filter((s) => s.prominence === "secondary").map((s) => s.label).join(", ")}
-Strengths: ${stored.strengths.join("; ")}
-Facts: ${stored.facts.join("; ")}
-Inferences: ${stored.inferences.join("; ")}
+Secondary skills: ${stored.skills
+      .filter((s) => s.prominence === "secondary")
+      .slice(0, 10)
+      .map((s) => s.label)
+      .join(", ")}
+Facts: ${clip(stored.facts.join("; "), 600)}
 
 Résumé lines (copy current from these verbatim):
 ${flattenResume(resume)
   .filter((line) => line.display === "body" || line.display === "bullet" || line.display === "tags")
   .map((line) => `- ${line.text}`)
   .join("\n")
-  .slice(0, 5000)}
+  .slice(0, 2200)}
 
 Job:
 Company: ${job.company}
 Title: ${job.position}
 Location: ${job.location ?? "not stated"}
 Work mode: ${job.workMode}
-Apply URL: ${job.applyUrl ?? job.url ?? "not stated"}
 Heuristic match score: ${match.score}%
-Heuristic summary: ${match.summary}
+Heuristic summary: ${clip(match.summary, 280)}
 
 Job description:
-${clip(job.description, 4500)}
+${clip(job.description, 1800)}
 `,
   );
 

@@ -5,8 +5,9 @@ import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { getUserResumeAndProfile, saveUserProfile } from "@/lib/db/profile";
 import { ROLE_LABELS, type RoleFamily } from "@/lib/matching/taxonomy";
 import { heuristicStoredProfile, toStoredProfile } from "@/lib/profile/hydrate";
+import { feedCacheTag } from "@/lib/matching/feed";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 export type ProfileActionResult = { ok: true } | { ok: false; error: string };
 
@@ -57,7 +58,7 @@ export async function saveProfileAction(formData: FormData): Promise<ProfileActi
 
   revalidatePath("/profile");
   revalidatePath("/jobs");
-  revalidatePath("/home");
+  updateTag(feedCacheTag(userId));
   return { ok: true };
 }
 
@@ -75,6 +76,7 @@ export async function reanalyzeProfileAction(): Promise<ProfileActionResult> {
   if (!isGeminiConfigured()) {
     await saveUserProfile(userId, heuristicStoredProfile(resume));
     revalidatePath("/profile");
+    updateTag(feedCacheTag(userId));
     return { ok: false, error: "Gemini is not configured, so the heuristic profile was kept." };
   }
 
@@ -82,7 +84,7 @@ export async function reanalyzeProfileAction(): Promise<ProfileActionResult> {
     await saveUserProfile(userId, await extractProfileWithGemini(resume));
     revalidatePath("/profile");
     revalidatePath("/jobs");
-    revalidatePath("/home");
+    updateTag(feedCacheTag(userId));
     return { ok: true };
   } catch (error) {
     return {

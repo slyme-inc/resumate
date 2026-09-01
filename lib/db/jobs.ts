@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
-import { job, savedJob } from "@/lib/db/schema";
+import { job, jobRoleCard, savedJob } from "@/lib/db/schema";
 import type { JobRow, JobScoreRow } from "@/lib/matching/job";
+import { isRoleCard } from "@/lib/matching/role-card";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 
@@ -26,19 +27,21 @@ export type JobPoolOptions = {
   limit?: number;
 };
 
-/**
- * Pull a bounded candidate set for in-memory scoring. Scoring every one of the
- * ~6k rows per request would be wasteful, so Postgres narrows first.
- *
- * Descriptions are clipped in SQL: a full HTML blob per row dominates transfer
- * and the skill extractor only needs the opening of the posting.
- */
-export async function fetchJobPool({
+type CachedJobScoreRow = Omit<JobScoreRow, "date"> & { date: string | null };
+
+function revivePoolRow(row: CachedJobScoreRow): JobScoreRow {
+  return {
+    ...row,
+    date: row.date ? new Date(row.date) : null,
+  };
+}
+
+async function queryJobPool({
   query,
   skillTerms = [],
   source,
   limit = 200,
-}: JobPoolOptions): Promise<JobScoreRow[]> {
+}: JobPoolOptions): Promise<CachedJobScoreRow[]> {
   const conditions: SQL[] = [];
 
   const userQuery = query?.trim() ? query.trim() : null;
@@ -57,7 +60,7 @@ export async function fetchJobPool({
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  return getDb()
+  const rows = await getDb()
     .select({
       source: job.source,
       id: job.id,
@@ -74,11 +77,49 @@ export async function fetchJobPool({
       date: job.date,
       salaryMin: job.salaryMin,
       salaryMax: job.salaryMax,
+      roleCard: jobRoleCard.card,
     })
     .from(job)
+    .leftJoin(jobRoleCard, and(eq(job.source, jobRoleCard.source), eq(job.id, jobRoleCard.id)))
     .where(where)
     .orderBy(sql`${job.date} desc nulls last`)
     .limit(limit);
+
+  return rows.map((row) => ({
+    ...row,
+    date: row.date ? row.date.toISOString() : null,
+    roleCard: isRoleCard(row.roleCard) ? row.roleCard : null,
+  }));
+}
+
+const loadJobPool = unstable_cache(
+  async (query: string | null, skillKey: string, source: string | null, limit: number) => {
+    return queryJobPool({
+      query,
+      skillTerms: skillKey ? skillKey.split("\n") : [],
+      source,
+      limit,
+    });
+  },
+  ["job-pool"],
+  { revalidate: 90, tags: ["job-pool"] },
+);
+
+/**
+ * Pull a bounded candidate set for in-memory scoring. Scoring every one of the
+ * ~6k rows per request would be wasteful, so Postgres narrows first.
+ *
+ * Descriptions are clipped in SQL: a full HTML blob per row dominates transfer
+ * and the skill extractor only needs the opening of the posting.
+ */
+export async function fetchJobPool(options: JobPoolOptions): Promise<JobScoreRow[]> {
+  const rows = await loadJobPool(
+    options.query?.trim() || null,
+    (options.skillTerms ?? []).join("\n"),
+    options.source ?? null,
+    options.limit ?? 200,
+  );
+  return rows.map(revivePoolRow);
 }
 
 export async function getJob(source: string, id: string): Promise<JobRow | null> {
@@ -107,9 +148,17 @@ export function listSources() {
   return loadSources();
 }
 
-export async function countJobs() {
-  const [row] = await getDb().select({ count: sql<number>`count(*)::int` }).from(job);
-  return row?.count ?? 0;
+const loadJobCount = unstable_cache(
+  async () => {
+    const [row] = await getDb().select({ count: sql<number>`count(*)::int` }).from(job);
+    return row?.count ?? 0;
+  },
+  ["job-count"],
+  { revalidate: 120, tags: ["job-pool"] },
+);
+
+export function countJobs() {
+  return loadJobCount();
 }
 
 export async function listSavedKeys(userId: string) {

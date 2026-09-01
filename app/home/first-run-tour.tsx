@@ -6,12 +6,8 @@ const STORAGE_KEY = "resumate.tour.v1";
 
 const STEPS = [
   {
-    title: "Upload your résumé",
-    body: "A PDF or DOCX is enough. We read the skills, roles, and dates so every match starts from work you have actually done.",
-  },
-  {
     title: "See roles ranked to you",
-    body: "Open jobs are scored against that profile. Stronger fit rises first — not the listing that shouted the loudest.",
+    body: "Open jobs are scored against the résumé you uploaded. Stronger fit rises first — not the listing that shouted the loudest.",
   },
   {
     title: "Know what to strengthen",

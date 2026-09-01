@@ -8,6 +8,7 @@ import {
 } from "@/lib/matching/taxonomy";
 import { toStoredProfile } from "@/lib/profile/hydrate";
 import type { StoredProfile } from "@/lib/profile/stored";
+import { flattenResume } from "@/lib/resume/lines";
 import type { ParsedResume } from "@/lib/resume/types";
 
 const ROLE_IDS = Object.keys(ROLE_LABELS) as RoleFamily[];
@@ -15,6 +16,28 @@ const SENIORITY_IDS = Object.keys(SENIORITY_LABELS) as SeniorityLevel[];
 
 function clip(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}\n…[truncated]` : text;
+}
+
+function resumeDigest(resume: ParsedResume) {
+  const header = [
+    resume.name ? `Name: ${resume.name}` : null,
+    resume.headline ? `Headline: ${resume.headline}` : null,
+    resume.location ? `Location: ${resume.location}` : null,
+    resume.email ? `Email: ${resume.email}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const structured = flattenResume(resume)
+    .map((line) => {
+      if (line.display === "heading") return `\n## ${line.text}`;
+      if (line.display === "bullet") return `- ${line.text}`;
+      if (line.display === "tags") return line.text;
+      return line.text;
+    })
+    .join("\n");
+
+  return clip(`${header}\n${structured}`, 6_000);
 }
 
 export async function extractProfileWithGemini(resume: ParsedResume): Promise<StoredProfile> {
@@ -25,11 +48,17 @@ Rules:
 - Use only information present in the résumé. Never invent jobs, skills, employers, or years.
 - facts[]: statements directly supported by the résumé.
 - inferences[]: cautious interpretations, written as inferences, not facts.
-- primarySkills: the 4–8 technologies the candidate clearly owns.
-- secondarySkills: other technologies mentioned, not guessed.
-- roles: choose from ${ROLE_IDS.join(", ")}.
-- seniority: choose from ${SENIORITY_IDS.join(", ")}.
-- yearsOfExperience: integer years spanned by employment dates, or null if unclear.
+- primarySkills: 4–8 individual technologies the candidate clearly owns. One skill per array item. Use the name as written (Vite stays Vite, BigQuery stays BigQuery). Never group unrelated tools.
+- secondarySkills: other technologies mentioned, not guessed. One skill per array item.
+- roles: EXACT ids from this list only: ${ROLE_IDS.join(", ")}.
+  Map "software engineer" / "SWE" without a front/back/mobile signal to fullstack.
+- seniority: EXACT ids from this list only: ${SENIORITY_IDS.join(", ")}.
+  Infer from job titles first (Intern/Junior/Senior/Staff/Principal). Do not promote someone to staff/principal just because calendar years are high.
+- yearsOfExperience: integer years of professional work only.
+  Count employment date ranges, merging overlaps. Exclude education, graduation years, and certifications.
+  A 2024–present role in ${new Date().getFullYear()} is about ${new Date().getFullYear() - 2024} years, not the span back to a 2018 degree.
+  Null if dates are too unclear to estimate.
+- titles: job titles from work experience only, not project names.
 - startupSuitability: one short inference or null.
 - industryInterests: only if the résumé supports them.
 
@@ -51,8 +80,8 @@ JSON shape:
   "startupSuitability": string | null
 }
 
-Résumé text:
-${clip(resume.rawText || JSON.stringify(resume.sections), 8000)}
+Résumé:
+${resumeDigest(resume)}
 `,
   );
 

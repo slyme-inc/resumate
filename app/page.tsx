@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 const STEPS = [
   {
     title: "Upload once",
-    body: "A PDF or DOCX. We read the skills, roles, and dates so nothing is invented on your behalf.",
+    body: "A Word (.docx) file. We read the skills, roles, and dates so nothing is invented on your behalf.",
   },
   {
     title: "See the fit",

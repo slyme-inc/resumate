@@ -1,30 +1,42 @@
 "use client";
 
-import { parseResumeAction } from "@/app/actions/resume";
+import { parseResumeAction, saveResumeDocxAction } from "@/app/actions/resume";
 import { EmptyResumeState } from "@/app/home/empty-resume-state";
-import { PdfPreview } from "@/app/home/pdf-preview";
+import { ResumeDocument } from "@/app/home/resume-document";
 import { ResumePreview } from "@/app/home/resume-preview";
 import { ResumePreviewSkeleton } from "@/components/skeletons";
+import { asDocxFileName, DOCX_CONTENT_TYPE } from "@/lib/resume/file-type";
+import type { DocxEditorApi } from "@/app/home/docx-editor";
 import type { ParsedResume } from "@/lib/resume/types";
-import { useState } from "react";
+import { FilePdf } from "@phosphor-icons/react";
+import { useRef, useState } from "react";
 
 export function ResumeWorkspace({
   initialResume,
-  initialPdfVersion,
+  initialFileVersion,
+  initialContentType,
 }: {
   initialResume: ParsedResume | null;
-  initialPdfVersion: string | null;
+  initialFileVersion: string | null;
+  initialContentType: string | null;
 }) {
+  const editorApi = useRef<DocxEditorApi | null>(null);
   const [resume, setResume] = useState<ParsedResume | null>(initialResume);
-  const [pdfVersion, setPdfVersion] = useState<string | null>(initialPdfVersion);
+  const [fileVersion, setFileVersion] = useState<string | null>(initialFileVersion);
+  const [contentType, setContentType] = useState<string | null>(initialContentType);
   const [fileName, setFileName] = useState<string | null>(initialResume?.fileName ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   async function handleFile(file: File) {
     setFileName(file.name);
     setError(null);
     setPending(true);
+    setDirty(false);
+    editorApi.current = null;
 
     const formData = new FormData();
     formData.set("resume", file);
@@ -33,20 +45,79 @@ export function ResumeWorkspace({
       const result = await parseResumeAction(formData);
       if (!result.ok) {
         setResume(null);
-        setPdfVersion(null);
+        setFileVersion(null);
+        setContentType(null);
         setError(result.error);
         return;
       }
       setResume(result.resume);
-      setPdfVersion(result.pdfVersion);
+      setFileVersion(result.fileVersion);
+      setContentType(result.contentType);
     } catch {
       setResume(null);
-      setPdfVersion(null);
+      setFileVersion(null);
+      setContentType(null);
       setError("We could not read that résumé.");
     } finally {
       setPending(false);
     }
   }
+
+  async function handleSave() {
+    const api = editorApi.current;
+    if (!api || !fileName) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const blob = await api.exportDocx();
+      if (!blob) {
+        setError("We could not export the document.");
+        return;
+      }
+      const formData = new FormData();
+      formData.set(
+        "resume",
+        new File([blob], asDocxFileName(fileName), { type: DOCX_CONTENT_TYPE }),
+      );
+      const result = await saveResumeDocxAction(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setResume(result.resume);
+      setDirty(false);
+    } catch {
+      setError("We could not save those edits.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleExportPdf() {
+    const api = editorApi.current;
+    if (!api || !fileName) {
+      return;
+    }
+    setExportingPdf(true);
+    setError(null);
+    try {
+      const blob = await api.exportPdf({
+        download: true,
+        fileName: asDocxFileName(fileName).replace(/\.docx$/i, ""),
+      });
+      if (!blob) {
+        setError("The résumé is still loading.");
+      }
+    } catch {
+      setError("We could not export a PDF of this résumé.");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
+  const fileSrc = fileVersion ? `/api/resume/file?v=${fileVersion}` : null;
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-2">
@@ -59,26 +130,52 @@ export function ResumeWorkspace({
           onInvalid={(message) => {
             setFileName(null);
             setResume(null);
-            setPdfVersion(null);
+            setFileVersion(null);
+            setContentType(null);
+            setDirty(false);
             setError(message);
           }}
         />
       </section>
-      <section className="min-h-0 overflow-hidden bg-card">
+      <section className="flex h-full min-h-0 flex-col overflow-hidden bg-card">
         {pending ? (
           <ResumePreviewSkeleton />
-        ) : resume && pdfVersion ? (
-          // The version in the URL makes a re-upload refetch rather than
-          // re-render the PDF the browser already has.
-          <PdfPreview
-            src={`/api/resume/file?v=${pdfVersion}`}
-            fileName={resume.fileName}
-            links={resume.links}
-            email={resume.email}
+        ) : resume ? (
+          <ResumeDocument
+            fileSrc={fileSrc}
+            contentType={contentType}
+            fileName={asDocxFileName(fileName ?? resume.fileName)}
+            onDirty={() => setDirty(true)}
+            onReady={(api) => {
+              editorApi.current = api;
+            }}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={() => void handleExportPdf()}
+                  disabled={exportingPdf || saving}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-line-strong bg-card px-3 py-1.5 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-paper disabled:opacity-60"
+                >
+                  <FilePdf size={16} weight="bold" />
+                  {exportingPdf ? "Exporting…" : "Export PDF"}
+                </button>
+                {dirty ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={saving || exportingPdf}
+                    className="rounded-[10px] bg-forest px-3 py-1.5 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 hover:bg-forest-bright disabled:opacity-60"
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                ) : null}
+              </>
+            }
           />
         ) : (
           <div className="h-full overflow-auto">
-            <ResumePreview resume={resume} />
+            <ResumePreview resume={null} />
           </div>
         )}
       </section>

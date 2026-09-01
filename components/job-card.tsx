@@ -1,7 +1,7 @@
 import { ScoreBadge } from "@/components/match-score";
 import { SaveButton } from "@/components/save-button";
 import { formatSalary, freshness, shortLocation } from "@/lib/format";
-import type { ScoredJob } from "@/lib/matching/feed";
+import type { JobListItem } from "@/lib/matching/feed";
 import { skillLabel, SENIORITY_LABELS } from "@/lib/matching/taxonomy";
 import Link from "next/link";
 
@@ -11,9 +11,36 @@ const WORK_MODE_LABELS = {
   onsite: "On-site",
 } as const;
 
-export function JobCard({ item }: { item: ScoredJob }) {
+function asDate(value: Date | string | null) {
+  if (!value) {
+    return null;
+  }
+  return value instanceof Date ? value : new Date(value);
+}
+
+export function JobCard({
+  item,
+}: {
+  item: {
+    key: string;
+    saved: boolean;
+    match: { score: number; summary: string; matchedSkills: string[] };
+    job: {
+      source: string;
+      id: string;
+      company: string;
+      position: string;
+      location: string | null;
+      workMode: JobListItem["job"]["workMode"];
+      seniority: JobListItem["job"]["seniority"];
+      date: Date | string | null;
+      salaryMin: number | null;
+      salaryMax: number | null;
+    };
+  };
+}) {
   const { job, match } = item;
-  const posted = freshness(job.date);
+  const posted = freshness(asDate(job.date));
   const salary = formatSalary(job.salaryMin, job.salaryMax);
   const location = shortLocation(job.location);
   const href = `/jobs/${encodeURIComponent(job.source)}/${encodeURIComponent(job.id)}`;

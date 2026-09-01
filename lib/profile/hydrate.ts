@@ -17,25 +17,42 @@ const ROLE_IDS = new Set<string>(Object.keys(ROLE_LABELS));
 const SENIORITY_IDS = new Set<string>(Object.keys(SENIORITY_LABELS));
 
 function asRole(value: string): RoleFamily | null {
-  const id = value.trim().toLowerCase().replace(/[\s-]+/g, "");
-  if (ROLE_IDS.has(value)) return value as RoleFamily;
+  const trimmed = value.trim();
+  if (ROLE_IDS.has(trimmed)) return trimmed as RoleFamily;
+  const id = trimmed.toLowerCase().replace(/[\s-]+/g, "");
+  if (ROLE_IDS.has(id)) return id as RoleFamily;
   const aliases: Record<string, RoleFamily> = {
     frontend: "frontend",
     frontendengineering: "frontend",
+    frontendengineer: "frontend",
+    frontenddeveloper: "frontend",
     backend: "backend",
     backendengineering: "backend",
+    backendengineer: "backend",
+    backenddeveloper: "backend",
     fullstack: "fullstack",
     fullstackengineering: "fullstack",
+    fullstackengineer: "fullstack",
+    fullstackdeveloper: "fullstack",
+    softwareengineer: "fullstack",
+    softwareengineering: "fullstack",
+    softwaredeveloper: "fullstack",
+    swe: "fullstack",
+    programmer: "fullstack",
     mobile: "mobile",
     mobileengineering: "mobile",
+    mobileengineer: "mobile",
     data: "data",
     dataengineering: "data",
+    dataengineer: "data",
     ml: "ml",
     machinelearning: "ml",
+    machinelearningengineer: "ml",
     devops: "devops",
     qa: "qa",
     security: "security",
     product: "product",
+    productmanager: "product",
     design: "design",
     other: "other",
   };
@@ -69,9 +86,25 @@ function unique(values: string[]) {
 }
 
 function skillEntries(labels: string[], prominence: StoredSkill["prominence"]): StoredSkill[] {
-  return unique(labels).map((label) => {
-    const id = extractSkills(label, true).keys().next().value;
-    const known = id ? SKILL_BY_ID.get(id) : undefined;
+  const parts = labels.flatMap((label) =>
+    label
+      .split(/[\n,;|]+/)
+      .map((part) => part.trim())
+      .filter(Boolean),
+  );
+
+  return unique(parts).map((label) => {
+    const counts = extractSkills(label, true);
+    let known = counts.size === 1 ? SKILL_BY_ID.get(counts.keys().next().value ?? "") : undefined;
+    if (known) {
+      const needle = label.toLowerCase().replace(/[\s._-]+/g, "");
+      const aliases = [known.label, ...known.aliases].map((alias) =>
+        alias.toLowerCase().replace(/[\s._-]+/g, ""),
+      );
+      if (!aliases.includes(needle)) {
+        known = undefined;
+      }
+    }
     return {
       label: known?.label ?? label,
       category: (known?.category ?? "other") as SkillCategory | "other",
@@ -168,29 +201,50 @@ export function toStoredProfile(resume: ParsedResume, draft: ProfileDraft): Stor
 
 export function toCandidateProfile(stored: StoredProfile, resume: ParsedResume): CandidateProfile {
   const derived = deriveCandidateProfile(resume);
-  const labels = stored.skills.map((skill) => skill.label).join("\n");
-  const counts = extractSkills(labels, true);
-  const skills: ProfileSkill[] = [...counts.entries()]
-    .map(([id, weight]) => {
-      const skill = SKILL_BY_ID.get(id);
-      return skill ? { id, label: skill.label, category: skill.category, weight } : null;
-    })
-    .filter((value): value is ProfileSkill => value !== null);
+  const mapped: ProfileSkill[] = [];
+  const seen = new Set<string>();
+  const primaryIds = new Set<string>();
 
-  const primaryLabels = new Set(
-    stored.skills.filter((skill) => skill.prominence === "primary").map((skill) => skill.label.toLowerCase()),
-  );
-  const primarySkills = skills.filter((skill) => primaryLabels.has(skill.label.toLowerCase()));
-  const secondarySkills = skills.filter((skill) => !primaryLabels.has(skill.label.toLowerCase()));
+  for (const skill of stored.skills) {
+    const extracted = extractSkills(skill.label, true);
+    const ids =
+      extracted.size > 0
+        ? [...extracted.keys()]
+        : [`other:${skill.label.toLowerCase()}`];
+
+    if (skill.prominence === "primary") {
+      for (const id of ids) {
+        primaryIds.add(id);
+      }
+    }
+
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const known = SKILL_BY_ID.get(id);
+      mapped.push({
+        id,
+        label: known?.label ?? skill.label,
+        category: known?.category ?? (skill.category === "other" ? "tool" : skill.category),
+        weight: skill.prominence === "primary" ? 3 : 1,
+      });
+    }
+  }
+
+  const skills = mapped.length > 0 ? mapped : derived.skills;
+  const primarySkills = skills.filter((skill) => primaryIds.has(skill.id));
+  const secondarySkills = skills.filter((skill) => !primaryIds.has(skill.id));
 
   return {
     name: stored.name ?? derived.name,
     headline: stored.headline ?? derived.headline,
     location: stored.location ?? derived.location,
-    skills: skills.length > 0 ? skills : derived.skills,
-    primarySkills: primarySkills.length > 0 ? primarySkills : derived.primarySkills,
-    secondarySkills: secondarySkills.length > 0 ? secondarySkills : derived.secondarySkills,
-    skillIds: new Set((skills.length > 0 ? skills : derived.skills).map((skill) => skill.id)),
+    skills,
+    primarySkills:
+      primarySkills.length > 0 || stored.skills.length > 0 ? primarySkills : derived.primarySkills,
+    secondarySkills:
+      stored.skills.length > 0 ? secondarySkills : derived.secondarySkills,
+    skillIds: new Set(skills.map((skill) => skill.id)),
     roles: stored.roles.length > 0 ? stored.roles : derived.roles,
     seniority: stored.seniority || derived.seniority,
     yearsOfExperience: stored.yearsOfExperience ?? derived.yearsOfExperience,

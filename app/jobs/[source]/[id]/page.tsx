@@ -1,12 +1,16 @@
 import { AppHeader } from "@/components/app-header";
-import { CompanyIntelCard } from "@/components/company-intel";
+import { CompanyIntelSection } from "@/components/company-intel";
 import { JobWorkspace } from "@/components/job-workspace";
 import { ScoreBadge, ScoreBreakdown } from "@/components/match-score";
 import { SaveButton } from "@/components/save-button";
-import { requireUserId } from "@/lib/auth/session";
-import { countOpenRoles, getCompanyIntel } from "@/lib/db/company";
+import { CompanyIntelSkeleton } from "@/components/skeletons";
+import { extractRoleCardWithGemini } from "@/lib/ai/role-card";
+import { isGeminiConfigured } from "@/lib/ai/gemini";
+import { requireResume } from "@/lib/auth/session";
 import { getJob, listSavedKeys } from "@/lib/db/jobs";
 import { getUserResumeAndProfile } from "@/lib/db/profile";
+import { getResumeFileMeta } from "@/lib/db/resume-file";
+import { getStoredRoleCard, saveRoleCard } from "@/lib/db/role-card";
 import { formatSalary, freshness } from "@/lib/format";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
@@ -14,8 +18,9 @@ import { ROLE_LABELS, SENIORITY_LABELS, skillLabel } from "@/lib/matching/taxono
 import { toParagraphs } from "@/lib/matching/text";
 import { deriveCandidateProfile } from "@/lib/profile/derive";
 import { toCandidateProfile } from "@/lib/profile/hydrate";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
+import { Suspense } from "react";
 
 export const maxDuration = 60;
 
@@ -26,35 +31,50 @@ const WORK_MODE_LABELS = {
 } as const;
 
 export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id]">) {
-  const userId = await requireUserId();
+  const { userId } = await requireResume();
   const { source, id } = await props.params;
   const decodedSource = decodeURIComponent(source);
   const decodedId = decodeURIComponent(id);
 
-  const [row, stored, savedKeys] = await Promise.all([
+  const [row, stored, savedKeys, storedCard, fileMeta] = await Promise.all([
     getJob(decodedSource, decodedId),
     getUserResumeAndProfile(userId),
     listSavedKeys(userId),
+    getStoredRoleCard(decodedSource, decodedId),
+    getResumeFileMeta(userId),
   ]);
   if (!row) {
     notFound();
   }
   if (!stored.resume) {
-    redirect("/home");
+    redirect("/onboarding");
   }
 
   const profile = stored.profile
     ? toCandidateProfile(stored.profile, stored.resume)
     : deriveCandidateProfile(stored.resume);
   const resume = stored.resume;
-  const companyPromise = Promise.all([
-    getCompanyIntel(row.company, row.ycSlug ?? null),
-    countOpenRoles(row.company ?? "", row.ycSlug),
-  ]);
-  const job = normalizeJob(row);
+  const job = normalizeJob({ ...row, roleCard: storedCard });
   const match = scoreJob(profile, job);
+
+  if (isGeminiConfigured() && job.roleCard.source !== "gemini") {
+    after(async () => {
+      try {
+        await saveRoleCard(
+          job.source,
+          job.id,
+          await extractRoleCardWithGemini({
+            title: job.position,
+            tags: job.tags,
+            description: job.description,
+          }),
+        );
+      } catch (error) {
+        console.error("Gemini role-card extract failed.", error);
+      }
+    });
+  }
   const saved = savedKeys.has(jobKey(job.source, job.id));
-  const [company, openRoles] = await companyPromise;
 
   const posted = freshness(job.date);
   const salary = formatSalary(job.salaryMin, job.salaryMax);
@@ -79,20 +99,19 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
         id={job.id}
         company={job.company}
         resume={resume}
+        fileSrc={
+          fileMeta && fileMeta.byteSize > 0
+            ? `/api/resume/file?v=${fileMeta.updatedAt.getTime()}`
+            : null
+        }
+        contentType={fileMeta && fileMeta.byteSize > 0 ? fileMeta.contentType : null}
         focusSkills={[
           ...match.matchedSkills.map(skillLabel),
           ...profile.primarySkills.map((skill) => skill.label),
         ]}
         header={
           <>
-            <Link
-              href="/jobs"
-              className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors duration-150 hover:text-ink"
-            >
-              ← Back to matches
-            </Link>
-
-            <header className="mt-5 flex flex-wrap items-start gap-5">
+            <header className="flex flex-wrap items-start gap-5">
           <ScoreBadge score={match.score} />
           <div className="min-w-60 flex-1">
             <h1 className="font-serif text-4xl font-medium leading-tight tracking-tight text-ink">
@@ -140,12 +159,15 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
               <ScoreBreakdown dimensions={match.dimensions} />
             </div>
             <p className="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed text-muted">
-              Scores come from a transparent weighted model over your résumé and this posting. They
-              are a guide to where to spend attention, not a precise measurement.
+              Scores compare your confirmed profile to this posting&apos;s required
+              vs preferred skills. They are a guide to where to spend attention,
+              not a probability of getting hired.
             </p>
           </section>
 
-          {company ? <CompanyIntelCard intel={company} openRoles={openRoles} /> : null}
+          <Suspense fallback={<CompanyIntelSkeleton />}>
+            <CompanyIntelSection company={row.company} ycSlug={row.ycSlug} />
+          </Suspense>
           <div className="rounded-[14px] border border-line bg-card p-6">
             <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
               The role

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 const BASE = "#e3ddd1";
 const HIGHLIGHT = "#fbf8f2";
 
-export function AppSkeletonTheme({ children }: { children: ReactNode }) {
+function Themed({ children }: { children: ReactNode }) {
   return (
     <SkeletonTheme baseColor={BASE} highlightColor={HIGHLIGHT} borderRadius={8} duration={1.4}>
       {children}
@@ -20,6 +20,7 @@ function Card({ children }: { children: ReactNode }) {
 
 export function OpportunityIntelSkeleton() {
   return (
+    <Themed>
     <div className="space-y-6" aria-busy="true" aria-live="polite">
       <span className="sr-only">Reading your résumé against this posting</span>
       <Card>
@@ -68,11 +69,13 @@ export function OpportunityIntelSkeleton() {
         </div>
       </Card>
     </div>
+    </Themed>
   );
 }
 
 export function ResumePreviewSkeleton() {
   return (
+    <Themed>
     <div className="flex h-full min-h-full flex-col" aria-busy="true" aria-live="polite">
       <span className="sr-only">Analyzing your résumé</span>
       <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-3">
@@ -109,11 +112,13 @@ export function ResumePreviewSkeleton() {
         </div>
       </div>
     </div>
+    </Themed>
   );
 }
 
 export function ProfileFormSkeleton() {
   return (
+    <Themed>
     <div className="space-y-6" aria-busy="true" aria-live="polite">
       <span className="sr-only">Re-analyzing your profile</span>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -134,11 +139,13 @@ export function ProfileFormSkeleton() {
       </div>
       <Skeleton height={88} />
     </div>
+    </Themed>
   );
 }
 
 export function JobCardSkeleton() {
   return (
+    <Themed>
     <div className="rounded-[14px] border border-line bg-card p-5">
       <div className="flex items-start gap-4">
         <Skeleton width={56} height={56} borderRadius={14} />
@@ -158,38 +165,20 @@ export function JobCardSkeleton() {
         </div>
       </div>
     </div>
+    </Themed>
   );
 }
 
 export function JobsFeedSkeleton() {
   return (
+    <Themed>
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading matches</span>
       <Skeleton width={280} height={36} />
       <div className="mt-3 max-w-2xl">
         <Skeleton count={2} height={14} className="mb-2" />
       </div>
-      <div className="mt-8 grid gap-3 sm:grid-cols-3">
-        <Card>
-          <Skeleton width={48} height={28} />
-          <div className="mt-2">
-            <Skeleton width={96} height={10} />
-          </div>
-        </Card>
-        <Card>
-          <Skeleton width={48} height={28} />
-          <div className="mt-2">
-            <Skeleton width={96} height={10} />
-          </div>
-        </Card>
-        <Card>
-          <Skeleton width={48} height={28} />
-          <div className="mt-2">
-            <Skeleton width={72} height={10} />
-          </div>
-        </Card>
-      </div>
-      <div className="mt-4 rounded-[14px] border border-line bg-card p-5">
+      <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
         <Skeleton height={42} />
       </div>
       <div className="mt-6 space-y-4">
@@ -199,11 +188,63 @@ export function JobsFeedSkeleton() {
         <JobCardSkeleton />
       </div>
     </div>
+    </Themed>
+  );
+}
+
+export function JobsListSkeleton() {
+  return (
+    <Themed>
+      <div className="mt-6" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading matches</span>
+        <Skeleton width={168} height={12} />
+        <div className="mt-4 space-y-4">
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+        </div>
+      </div>
+    </Themed>
+  );
+}
+
+export function JobsSessionSkeleton() {
+  return (
+    <Themed>
+      <div className="mt-8" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading filters</span>
+        <div className="rounded-[14px] border border-line bg-card p-5">
+          <Skeleton height={42} />
+        </div>
+      </div>
+      <JobsListSkeleton />
+    </Themed>
+  );
+}
+
+export function CompanyIntelSkeleton() {
+  return (
+    <Themed>
+      <section className="rounded-[14px] border border-line bg-card p-6" aria-busy="true">
+        <span className="sr-only">Loading company</span>
+        <Skeleton width={88} height={11} />
+        <div className="mt-3">
+          <Skeleton width="40%" height={16} />
+        </div>
+        <div className="mt-4 space-y-3">
+          <Skeleton height={14} width="55%" />
+          <Skeleton height={14} width="45%" />
+          <Skeleton height={14} width="35%" />
+        </div>
+      </section>
+    </Themed>
   );
 }
 
 export function SavedFeedSkeleton() {
   return (
+    <Themed>
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading saved roles</span>
       <Skeleton width={120} height={36} />
@@ -216,11 +257,13 @@ export function SavedFeedSkeleton() {
         <JobCardSkeleton />
       </div>
     </div>
+    </Themed>
   );
 }
 
 export function HomeWorkspaceSkeleton() {
   return (
+    <Themed>
     <div className="grid min-h-0 flex-1 lg:grid-cols-2" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading résumé workspace</span>
       <section className="flex items-center justify-center border-b border-line px-6 py-12 lg:border-b-0 lg:border-r">
@@ -236,11 +279,13 @@ export function HomeWorkspaceSkeleton() {
         <ResumePreviewSkeleton />
       </section>
     </div>
+    </Themed>
   );
 }
 
 export function JobDetailSkeleton() {
   return (
+    <Themed>
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading role</span>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:w-1/2">
@@ -262,11 +307,13 @@ export function JobDetailSkeleton() {
         <ResumePreviewSkeleton />
       </aside>
     </div>
+    </Themed>
   );
 }
 
 export function ProfilePageSkeleton() {
   return (
+    <Themed>
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading profile</span>
       <Skeleton width={180} height={12} />
@@ -280,6 +327,7 @@ export function ProfilePageSkeleton() {
         <ProfileFormSkeleton />
       </div>
     </div>
+    </Themed>
   );
 }
 

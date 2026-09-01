@@ -64,7 +64,8 @@ export const SKILLS: Skill[] = [
   { id: "css", label: "CSS", category: "frontend", aliases: ["css", "css3", "scss", "sass"] },
   { id: "tailwind", label: "Tailwind CSS", category: "frontend", aliases: ["tailwind", "tailwindcss"] },
   { id: "redux", label: "Redux", category: "frontend", aliases: ["redux"] },
-  { id: "webpack", label: "Webpack", category: "frontend", aliases: ["webpack", "vite", "rollup"] },
+  { id: "webpack", label: "Webpack", category: "frontend", aliases: ["webpack"] },
+  { id: "vite", label: "Vite", category: "frontend", aliases: ["vite"] },
 
   // Backend
   { id: "nodejs", label: "Node.js", category: "backend", aliases: ["node.js", "nodejs", "node"] },
@@ -78,7 +79,7 @@ export const SKILLS: Skill[] = [
   { id: "laravel", label: "Laravel", category: "backend", aliases: ["laravel"] },
   { id: "dotnet", label: ".NET", category: "backend", aliases: [".net", "dotnet", "asp.net", ".net core"] },
   { id: "graphql", label: "GraphQL", category: "backend", aliases: ["graphql"] },
-  { id: "rest", label: "REST APIs", category: "backend", aliases: ["rest", "rest api", "restful", "rest apis"] },
+  { id: "rest", label: "REST APIs", category: "backend", aliases: ["rest api", "restful", "rest apis"] },
   { id: "grpc", label: "gRPC", category: "backend", aliases: ["grpc"] },
   { id: "microservices", label: "Microservices", category: "backend", aliases: ["microservices", "microservice"] },
 
@@ -112,7 +113,8 @@ export const SKILLS: Skill[] = [
   { id: "kubernetes", label: "Kubernetes", category: "devops", aliases: ["kubernetes", "k8s", "eks", "gke"] },
   { id: "terraform", label: "Terraform", category: "devops", aliases: ["terraform"] },
   { id: "cicd", label: "CI/CD", category: "devops", aliases: ["ci/cd", "cicd", "continuous integration", "continuous delivery"] },
-  { id: "github-actions", label: "GitHub Actions", category: "devops", aliases: ["github actions", "gitlab ci", "circleci", "jenkins"] },
+  { id: "github-actions", label: "GitHub Actions", category: "devops", aliases: ["github actions"] },
+  { id: "jenkins", label: "Jenkins", category: "devops", aliases: ["jenkins", "gitlab ci", "circleci"] },
   { id: "linux", label: "Linux", category: "devops", aliases: ["linux", "unix", "ubuntu"] },
   { id: "observability", label: "Observability", category: "devops", aliases: ["observability", "prometheus", "grafana", "datadog"] },
 
@@ -122,14 +124,18 @@ export const SKILLS: Skill[] = [
   { id: "nlp", label: "NLP", category: "data", aliases: ["nlp", "natural language processing"] },
   { id: "pytorch", label: "PyTorch", category: "data", aliases: ["pytorch"] },
   { id: "tensorflow", label: "TensorFlow", category: "data", aliases: ["tensorflow", "keras"] },
-  { id: "pandas", label: "pandas", category: "data", aliases: ["pandas", "numpy"] },
+  { id: "pandas", label: "pandas", category: "data", aliases: ["pandas"] },
+  { id: "numpy", label: "NumPy", category: "data", aliases: ["numpy"] },
   { id: "spark", label: "Spark", category: "data", aliases: ["spark", "pyspark", "databricks"] },
   { id: "kafka", label: "Kafka", category: "data", aliases: ["kafka"] },
-  { id: "airflow", label: "Airflow", category: "data", aliases: ["airflow", "dagster", "prefect"] },
-  { id: "snowflake", label: "Snowflake", category: "data", aliases: ["snowflake", "bigquery", "redshift"] },
+  { id: "airflow", label: "Airflow", category: "data", aliases: ["airflow"] },
+  { id: "snowflake", label: "Snowflake", category: "data", aliases: ["snowflake"] },
+  { id: "bigquery", label: "BigQuery", category: "data", aliases: ["bigquery", "big query"] },
+  { id: "redshift", label: "Redshift", category: "data", aliases: ["redshift"] },
   { id: "dbt", label: "dbt", category: "data", aliases: ["dbt"] },
   { id: "etl", label: "ETL", category: "data", aliases: ["etl", "elt", "data pipeline", "data pipelines"] },
-  { id: "tableau", label: "Tableau", category: "data", aliases: ["tableau", "power bi", "looker"] },
+  { id: "tableau", label: "Tableau", category: "data", aliases: ["tableau"] },
+  { id: "powerbi", label: "Power BI", category: "data", aliases: ["power bi", "powerbi"] },
 
   // Tools & platforms
   { id: "git", label: "Git", category: "tool", aliases: ["git", "github", "gitlab"] },
@@ -137,7 +143,8 @@ export const SKILLS: Skill[] = [
   { id: "sap", label: "SAP", category: "tool", aliases: ["sap", "abap"] },
   { id: "selenium", label: "Selenium", category: "tool", aliases: ["selenium"] },
   { id: "cypress", label: "Cypress", category: "tool", aliases: ["cypress", "playwright"] },
-  { id: "jest", label: "Jest", category: "tool", aliases: ["jest", "vitest", "pytest", "junit"] },
+  { id: "jest", label: "Jest", category: "tool", aliases: ["jest", "vitest"] },
+  { id: "pytest", label: "pytest", category: "tool", aliases: ["pytest"] },
   { id: "jira", label: "Jira", category: "tool", aliases: ["jira", "confluence"] },
   { id: "figma", label: "Figma", category: "tool", aliases: ["figma"] },
   { id: "agile", label: "Agile", category: "tool", aliases: ["agile", "scrum", "kanban"] },
@@ -146,6 +153,9 @@ export const SKILLS: Skill[] = [
 export const SKILL_BY_ID = new Map(SKILLS.map((skill) => [skill.id, skill]));
 
 export function skillLabel(id: string) {
+  if (id.startsWith("other:")) {
+    return id.slice(6);
+  }
   return SKILL_BY_ID.get(id)?.label ?? id;
 }
 
@@ -195,9 +205,9 @@ export const ROLE_PATTERNS: { family: RoleFamily; patterns: RegExp[] }[] = [
   { family: "ml", patterns: [/machine learning/, /\bml\b/, /\bai\b engineer/, /deep learning/, /research scientist/, /applied scientist/, /\bnlp\b/] },
   { family: "data", patterns: [/data engineer/, /data scientist/, /data analyst/, /analytics engineer/, /database administrat/, /\bdataops\b/, /data quality/] },
   { family: "mobile", patterns: [/mobile/, /android/, /\bios\b/, /react native/, /flutter/] },
-  { family: "fullstack", patterns: [/full[\s-]?stack/, /fullstack/] },
   { family: "frontend", patterns: [/front[\s-]?end/, /frontend/, /\bui engineer/, /web developer/] },
   { family: "backend", patterns: [/back[\s-]?end/, /backend/, /server[\s-]?side/, /\bapi engineer/, /distributed systems/] },
+  { family: "fullstack", patterns: [/full[\s-]?stack/, /fullstack/, /\bsoftware engineer\b/, /\bsoftware developer\b/, /\bswe\b/, /\bprogrammer\b/] },
   { family: "security", patterns: [/security/, /\bappsec\b/, /penetration test/] },
   { family: "design", patterns: [/\bdesigner\b/, /\bux\b/, /\bui\/ux\b/] },
   { family: "product", patterns: [/product manager/, /product owner/] },

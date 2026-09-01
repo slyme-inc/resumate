@@ -115,8 +115,8 @@ export function linkMatchTokens(link: ResumeLink) {
 }
 
 /**
- * Words and URLs that should be clickable in the PDF preview, including
- * labels like "GitHub" that the file paints as plain text.
+ * Words and URLs that should be treated as links, including labels like
+ * "GitHub" that the file paints as plain text.
  */
 export function displayLinkTargets(links: ResumeLink[], email?: string | null) {
   const byText = new Map<string, string>();

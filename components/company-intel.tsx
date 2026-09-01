@@ -1,4 +1,4 @@
-import type { CompanyIntel } from "@/lib/db/company";
+import { countOpenRoles, getCompanyIntel, type CompanyIntel } from "@/lib/db/company";
 
 export function CompanyIntelCard({
   intel,
@@ -75,4 +75,21 @@ export function CompanyIntelCard({
       </p>
     </section>
   );
+}
+
+export async function CompanyIntelSection({
+  company,
+  ycSlug,
+}: {
+  company: string | null;
+  ycSlug: string | null;
+}) {
+  const [intel, openRoles] = await Promise.all([
+    getCompanyIntel(company, ycSlug),
+    countOpenRoles(company ?? "", ycSlug),
+  ]);
+  if (!intel) {
+    return null;
+  }
+  return <CompanyIntelCard intel={intel} openRoles={openRoles} />;
 }

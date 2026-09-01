@@ -4,7 +4,6 @@ import {
   mergeLinks,
   withVisibleAnchorText,
 } from "@/lib/resume/links";
-import { extractPdfDocument } from "@/lib/resume/pdf-text";
 import mammoth from "mammoth";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -23,24 +22,15 @@ export function assertResumeFile(fileName: string, byteLength: number) {
   }
 
   const extension = extensionOf(fileName);
-  if (extension === ".doc") {
-    throw new Error("Save the file as PDF or DOCX.");
+  if (extension === ".doc" || extension === ".pdf") {
+    throw new Error("Save the file as DOCX from Word or Google Docs.");
   }
-  if (extension !== ".pdf" && extension !== ".docx") {
-    throw new Error("Use a PDF or DOCX file.");
+  if (extension !== ".docx") {
+    throw new Error("Use a Word (.docx) file.");
   }
 }
 
-function assertFileSignature(fileName: string, bytes: Uint8Array) {
-  const extension = extensionOf(fileName);
-  if (extension === ".pdf") {
-    const header = new TextDecoder().decode(bytes.slice(0, 5));
-    if (!header.startsWith("%PDF")) {
-      throw new Error("That file is not a valid PDF.");
-    }
-    return;
-  }
-
+function assertFileSignature(bytes: Uint8Array) {
   if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
     throw new Error("That file is not a valid DOCX.");
   }
@@ -72,12 +62,9 @@ async function extractDocx(bytes: Uint8Array) {
 
 export async function extractResumeDocument(fileName: string, bytes: Uint8Array) {
   assertResumeFile(fileName, bytes.byteLength);
-  assertFileSignature(fileName, bytes);
+  assertFileSignature(bytes);
 
-  const extension = extensionOf(fileName);
-  const extracted =
-    extension === ".pdf" ? await extractPdfDocument(bytes) : await extractDocx(bytes);
-
+  const extracted = await extractDocx(bytes);
   if (!extracted.text) {
     throw new Error("We could not read any text from that file.");
   }

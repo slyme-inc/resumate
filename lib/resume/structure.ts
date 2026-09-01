@@ -11,9 +11,18 @@ const SECTION_ALIASES: Array<{ match: string; title: string }> = [
   { match: "professional summary", title: "Summary" },
   { match: "work experience", title: "Experience" },
   { match: "professional experience", title: "Experience" },
+  { match: "relevant experience", title: "Experience" },
+  { match: "career history", title: "Experience" },
   { match: "employment history", title: "Experience" },
   { match: "work history", title: "Experience" },
+  { match: "internships", title: "Experience" },
+  { match: "internship", title: "Experience" },
+  { match: "technical skillset", title: "Skills" },
   { match: "technical skills", title: "Skills" },
+  { match: "tech stack", title: "Skills" },
+  { match: "tools and technologies", title: "Skills" },
+  { match: "tools & technologies", title: "Skills" },
+  { match: "programming languages", title: "Skills" },
   { match: "core competencies", title: "Skills" },
   { match: "core skills", title: "Skills" },
   { match: "summary", title: "Summary" },
@@ -53,14 +62,14 @@ function cleanLine(line: string) {
 
 function sectionTitle(line: string) {
   const cleaned = cleanLine(line);
-  if (!cleaned || cleaned.length > 40) {
+  if (!cleaned || cleaned.length > 48) {
     return null;
   }
-  if (cleaned.split(/\s+/).length > 4) {
+  if (cleaned.split(/\s+/).length > 6) {
     return null;
   }
 
-  const key = cleaned.toLowerCase();
+  const key = cleaned.toLowerCase().replace(/^\d+[.)]\s*/, "");
   return SECTION_ALIASES.find((item) => key === item.match)?.title ?? null;
 }
 

@@ -5,6 +5,7 @@ import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { getInsight, saveInsight } from "@/lib/db/insight";
 import { getJob } from "@/lib/db/jobs";
 import { getUserResumeAndProfile } from "@/lib/db/profile";
+import { getStoredRoleCard } from "@/lib/db/role-card";
 import { normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
 import { deriveCandidateProfile } from "@/lib/profile/derive";
@@ -28,9 +29,10 @@ export async function loadOpportunityInsightAction(
     return { ok: false, error: "Sign in to generate advice." };
   }
 
-  const [{ resume, profile: stored }, row] = await Promise.all([
+  const [{ resume, profile: stored }, row, storedCard] = await Promise.all([
     getUserResumeAndProfile(userId),
     getJob(source, id),
+    getStoredRoleCard(source, id),
   ]);
 
   if (!resume || !row) {
@@ -39,7 +41,7 @@ export async function loadOpportunityInsightAction(
 
   const storedProfile = stored ?? heuristicStoredProfile(resume);
   const profile = stored ? toCandidateProfile(stored, resume) : deriveCandidateProfile(resume);
-  const job = normalizeJob(row);
+  const job = normalizeJob({ ...row, roleCard: storedCard });
   const match = scoreJob(profile, job);
   const profileFp = fingerprintProfile(storedProfile);
 

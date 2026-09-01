@@ -13,6 +13,12 @@ export type ResumeLink = {
   url: string;
 };
 
+/** Visual replacements keyed to original document line text. */
+export type ResumeOverlay = {
+  from: string;
+  to: string;
+};
+
 export type ParsedResume = {
   fileName: string;
   rawText: string;
@@ -23,4 +29,5 @@ export type ParsedResume = {
   location: string | null;
   links: ResumeLink[];
   sections: ResumeSection[];
+  overlays?: ResumeOverlay[];
 };

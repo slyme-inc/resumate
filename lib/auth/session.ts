@@ -1,3 +1,4 @@
+import { getUserResume } from "@/lib/db/resume";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -14,4 +15,13 @@ export async function requireUserId() {
     redirect("/login");
   }
   return userId;
+}
+
+export async function requireResume() {
+  const userId = await requireUserId();
+  const resume = await getUserResume(userId);
+  if (!resume) {
+    redirect("/onboarding");
+  }
+  return { userId, resume };
 }

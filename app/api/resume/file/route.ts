@@ -1,8 +1,6 @@
 import { getUserId } from "@/lib/auth/session";
 import { getResumeFile } from "@/lib/db/resume-file";
 
-export const runtime = "nodejs";
-
 /** RFC 6266: `filename` must stay ASCII, `filename*` carries the original. */
 function contentDisposition(fileName: string) {
   const ascii = fileName.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
