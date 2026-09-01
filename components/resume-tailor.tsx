@@ -1,7 +1,11 @@
 "use client";
 
 import { ResumeDocument } from "@/app/home/resume-document";
-import type { DocxEditorApi, HintRect, ResumeHintAnchor } from "@/app/home/docx-editor";
+import type {
+  DocxEditorApi,
+  HintRect,
+  ResumeHintAnchor,
+} from "@/app/home/docx-editor";
 import type { OpportunityInsight } from "@/lib/ai/types";
 import { asDocxFileName } from "@/lib/resume/file-type";
 import {
@@ -38,8 +42,14 @@ export function ResumeTailor({
   const [pending, setPending] = useState<ResumeHintAnchor[]>([]);
   const lines = useMemo(() => flattenResume(resume), [resume]);
   const suggested = useMemo(() => {
-    const fromModel = attachSuggestions(lines, insight?.resumeFit.improve ?? []);
-    return mergeSuggestions(fromModel, skillReorderSuggestions(lines, focusSkills));
+    const fromModel = attachSuggestions(
+      lines,
+      insight?.resumeFit.improve ?? [],
+    );
+    return mergeSuggestions(
+      fromModel,
+      skillReorderSuggestions(lines, focusSkills),
+    );
   }, [lines, insight, focusSkills]);
   const leftover = useMemo(
     () => unmatchedRewrites(insight?.resumeFit.improve ?? [], suggested),
@@ -56,7 +66,9 @@ export function ResumeTailor({
     });
     return [...attached, ...leftover];
   }, [lines, suggested, leftover]);
-  const hintKey = hints.map((hint) => `${hint.current}=>${hint.suggested}`).join("\n");
+  const hintKey = hints
+    .map((hint) => `${hint.current}=>${hint.suggested}`)
+    .join("\n");
   const [synced, setSynced] = useState(false);
 
   useEffect(() => {
@@ -120,8 +132,12 @@ export function ResumeTailor({
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-forest">
             Résumé for this role
           </p>
-          <p className="mt-0.5 text-sm font-semibold tracking-tight text-ink">{status}</p>
-          {exportError ? <p className="mt-1 text-sm text-danger">{exportError}</p> : null}
+          <p className="mt-0.5 text-sm font-semibold tracking-tight text-ink">
+            {status}
+          </p>
+          {exportError ? (
+            <p className="mt-1 text-sm text-danger">{exportError}</p>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <button
@@ -202,7 +218,9 @@ function HintedDocument({
   const [pending, setPending] = useState<ResumeHintAnchor[]>([]);
   const [busyHint, setBusyHint] = useState<string | null>(null);
   const [rects, setRects] = useState<Record<string, HintRect>>({});
-  const hintKey = hints.map((hint) => `${hint.current}=>${hint.suggested}`).join("\n");
+  const hintKey = hints
+    .map((hint) => `${hint.current}=>${hint.suggested}`)
+    .join("\n");
   const pendingKey = pending.map((anchor) => anchor.key).join("\n");
   pendingRef.current = pending;
 
@@ -233,7 +251,11 @@ function HintedDocument({
     void api
       .applyHints(currentHints, controller.signal)
       .then((result) => {
-        if (controller.signal.aborted || editorApi.current !== api || result.aborted) {
+        if (
+          controller.signal.aborted ||
+          editorApi.current !== api ||
+          result.aborted
+        ) {
           return;
         }
         appliedKey.current = hintKey;
@@ -254,19 +276,31 @@ function HintedDocument({
     }
 
     function measure() {
-      const overlay = overlayRef.current;
       const editor = editorApi.current;
-      if (!overlay || !editor) {
+      const root = overlayRef.current;
+      if (!root || !editor) {
         return;
       }
-      const measured = editor.getHintRects(pendingRef.current, overlay);
+      const scroller =
+        root.querySelector<HTMLElement>(".superdoc-editor-container") ?? root;
+      const page = root.querySelector<HTMLElement>(".superdoc-page");
+      const view = scroller.getBoundingClientRect();
+      const pageBox = page?.getBoundingClientRect();
+      const measured = editor.getHintRects(pendingRef.current, scroller);
       const next: Record<string, HintRect> = {};
+      const buttonHeight = 28;
+      const buttonWidth = 40;
       for (const [key, rect] of Object.entries(measured)) {
+        const top = view.top + rect.top + (rect.height - buttonHeight) / 2;
+        if (top + buttonHeight < view.top || top > view.bottom) {
+          continue;
+        }
+        const pageLeft = pageBox?.left ?? view.left + rect.left;
         next[key] = {
-          top: rect.top,
-          left: rect.left + rect.width + 6,
-          width: 56,
-          height: Math.max(24, rect.height),
+          top,
+          left: Math.max(8, pageLeft - buttonWidth - 8),
+          width: buttonWidth,
+          height: buttonHeight,
         };
       }
       setRects(next);
@@ -280,7 +314,10 @@ function HintedDocument({
     };
   }, [pendingKey, editorReady]);
 
-  async function decide(anchor: ResumeHintAnchor, decision: "accept" | "reject") {
+  async function decide(
+    anchor: ResumeHintAnchor,
+    decision: "accept" | "reject",
+  ) {
     if (busyHint) {
       return;
     }
@@ -291,7 +328,9 @@ function HintedDocument({
         if (api) {
           await api.rejectHint(anchor);
         }
-        pushPending(pendingRef.current.filter((item) => item.key !== anchor.key));
+        pushPending(
+          pendingRef.current.filter((item) => item.key !== anchor.key),
+        );
         return;
       }
       if (!api) {
@@ -300,7 +339,9 @@ function HintedDocument({
       }
       const ok = await api.acceptHint(anchor);
       if (ok) {
-        pushPending(pendingRef.current.filter((item) => item.key !== anchor.key));
+        pushPending(
+          pendingRef.current.filter((item) => item.key !== anchor.key),
+        );
       } else {
         onErrorRef.current("We could not apply that edit in the Word file.");
       }
@@ -314,7 +355,7 @@ function HintedDocument({
   }
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden">
+    <div ref={overlayRef} className="relative min-h-0 flex-1 overflow-hidden">
       <ResumeDocument
         fileSrc={fileSrc}
         contentType={contentType}
@@ -330,25 +371,23 @@ function HintedDocument({
           });
         }}
       />
-      <div ref={overlayRef} className="pointer-events-none absolute inset-0 z-10">
-        {pending.map((anchor) => {
-          const rect = rects[anchor.key];
-          if (!rect) {
-            return null;
-          }
-          return (
-            <HintButtons
-              key={anchor.key}
-              anchor={anchor}
-              busy={busyHint === anchor.key}
-              style={{ top: rect.top, left: rect.left }}
-              onAccept={() => void decide(anchor, "accept")}
-              onReject={() => void decide(anchor, "reject")}
-              onFocus={() => void editorApi.current?.scrollToHint(anchor)}
-            />
-          );
-        })}
-      </div>
+      {pending.map((anchor) => {
+        const rect = rects[anchor.key];
+        if (!rect) {
+          return null;
+        }
+        return (
+          <HintButtons
+            key={anchor.key}
+            anchor={anchor}
+            busy={busyHint === anchor.key}
+            style={{ top: rect.top, left: rect.left }}
+            onAccept={() => void decide(anchor, "accept")}
+            onReject={() => void decide(anchor, "reject")}
+            onFocus={() => void editorApi.current?.scrollToHint(anchor)}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -370,7 +409,7 @@ function HintButtons({
 }) {
   return (
     <div
-      className="pointer-events-auto absolute flex gap-0.5 rounded-full border border-line bg-card/95 p-0.5 shadow-sm backdrop-blur-sm"
+      className="pointer-events-auto fixed z-40 flex border border-line bg-card shadow-sm"
       style={style}
     >
       <button
@@ -380,7 +419,7 @@ function HintButtons({
         disabled={busy}
         onClick={onAccept}
         onFocus={onFocus}
-        className="flex size-6 items-center justify-center rounded-full text-forest transition-colors duration-150 hover:bg-[var(--add-soft)] disabled:opacity-50"
+        className="flex size-6 items-center justify-center border-r border-line text-forest transition-colors duration-150 hover:bg-[var(--add-soft)] disabled:opacity-50"
       >
         <Check size={13} weight="bold" />
       </button>
@@ -390,7 +429,7 @@ function HintButtons({
         aria-label="Skip suggested rewrite"
         disabled={busy}
         onClick={onReject}
-        className="flex size-6 items-center justify-center rounded-full text-danger transition-colors duration-150 hover:bg-[var(--danger-soft)] disabled:opacity-50"
+        className="flex size-6 items-center justify-center text-danger transition-colors duration-150 hover:bg-[var(--danger-soft)] disabled:opacity-50"
       >
         <X size={13} weight="bold" />
       </button>

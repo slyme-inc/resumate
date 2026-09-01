@@ -781,7 +781,9 @@ export function observeHintViewport(
     stops.push(() => scroller.removeEventListener("scroll", listener));
   }
   window.addEventListener("resize", listener);
+  window.addEventListener("scroll", listener, true);
   stops.push(() => window.removeEventListener("resize", listener));
+  stops.push(() => window.removeEventListener("scroll", listener, true));
 
   if (root) {
     const mutation = new MutationObserver(listener);

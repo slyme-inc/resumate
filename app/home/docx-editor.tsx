@@ -208,7 +208,7 @@ export function DocxEditor({
           documentMode={documentMode}
           role="editor"
           format="docx"
-          rulers
+          rulers={documentMode !== "suggesting"}
           contained
           viewOptions={EDITOR_VIEW}
           zoom={EDITOR_ZOOM}
