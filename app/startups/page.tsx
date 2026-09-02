@@ -1,11 +1,12 @@
 import { AppHeader } from "@/components/app-header";
+import { PreviewFrame } from "@/components/link-preview-card";
 import { StartupSessionSkeleton } from "@/components/skeletons";
 import {
   StartupFilters,
   startupsHref,
   type StartupFilterValues,
 } from "@/components/startup-filters";
-import { StartupNewsCard } from "@/components/startup-news-card";
+import { STARTUP_NEWS_GRID, StartupNewsCard } from "@/components/startup-news-card";
 import { requireUserId } from "@/lib/auth/session";
 import {
   isRecentYcBatch,
@@ -16,7 +17,6 @@ import {
   type StartupNewsItem,
   type StartupNewsKind,
 } from "@/lib/db/startups";
-import { groupNewsByBatch, groupNewsByMonth } from "@/lib/startup/news";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -104,7 +104,6 @@ function NewsList({
   pageCount,
   values,
   empty,
-  grouped,
 }: {
   items: StartupNewsItem[];
   total: number;
@@ -113,39 +112,33 @@ function NewsList({
   pageCount: number;
   values: StartupFilterValues;
   empty: string;
-  grouped: "month" | "batch" | false;
 }) {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = (page - 1) * pageSize + items.length;
-  const sections =
-    grouped === "month"
-      ? groupNewsByMonth(items)
-      : grouped === "batch"
-        ? groupNewsByBatch(items)
-        : [{ key: "all", label: null, items }];
 
   return (
     <>
-      <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-        {total === 0 ? "No announcements" : `Showing ${from}–${to} of ${total}`}
-      </p>
+      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+          {total === 0
+            ? "No announcements"
+            : `${values.batch ? `${values.batch} · ` : ""}Showing ${from}–${to} of ${total}`}
+        </p>
+        {values.batch ? (
+          <Link
+            href={startupsHref({ q: values.q, kind: "yc", batch: "" })}
+            className="text-sm font-semibold tracking-tight text-forest hover:underline"
+          >
+            All recent batches
+          </Link>
+        ) : null}
+      </div>
       {total === 0 ? (
         <EmptyNews message={empty} />
       ) : (
-        <div className="mt-4 space-y-8">
-          {sections.map((group) => (
-            <section key={group.key}>
-              {group.label ? (
-                <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
-                  {group.label}
-                </h2>
-              ) : null}
-              <div className={group.label ? "mt-3 space-y-4" : "space-y-4"}>
-                {group.items.map((item) => (
-                  <StartupNewsCard key={`${item.source}:${item.id}`} item={item} />
-                ))}
-              </div>
-            </section>
+        <div className={STARTUP_NEWS_GRID}>
+          {items.map((item) => (
+            <StartupNewsCard key={`${item.source}:${item.id}`} item={item} />
           ))}
         </div>
       )}
@@ -166,7 +159,6 @@ async function FundingNews({
     <NewsList
       {...result}
       values={values}
-      grouped="month"
       empty="No public funding announcements matched that search."
     />
   );
@@ -184,7 +176,6 @@ async function RecentYcNews({
     <NewsList
       {...result}
       values={values}
-      grouped="batch"
       empty="No recent YC companies matched that search."
     />
   );
@@ -197,25 +188,22 @@ async function YcBatchIndex() {
   }
 
   return (
-    <div className="mt-6 space-y-3">
-      {batches.map((batch) => (
-        <article key={batch.ycBatch} className="rounded-[14px] border border-line bg-card p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
-            Y Combinator
-          </p>
-          <h3 className="mt-2 font-serif text-xl font-medium tracking-tight text-ink">{batch.ycBatch}</h3>
-          <p className="mt-1 text-sm tracking-tight text-muted">
-            {batch.companies} {batch.companies === 1 ? "company" : "companies"}
-          </p>
-          <Link
+    <>
+      <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+        {batches.length} recent {batches.length === 1 ? "batch" : "batches"}
+      </p>
+      <div className={STARTUP_NEWS_GRID}>
+        {batches.map((batch) => (
+          <PreviewFrame
+            key={batch.ycBatch}
             href={startupsHref({ q: "", kind: "yc", batch: batch.ycBatch })}
-            className="mt-4 inline-block text-sm font-semibold tracking-tight text-forest hover:underline"
-          >
-            Read the batch
-          </Link>
-        </article>
-      ))}
-    </div>
+            title={batch.ycBatch}
+            tag={`${batch.companies} ${batch.companies === 1 ? "company" : "companies"}`}
+            external={false}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -233,25 +221,11 @@ async function YcBatchFeed({
   });
 
   return (
-    <>
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-          {values.batch}
-        </p>
-        <Link
-          href={startupsHref({ q: values.q, kind: "yc", batch: "" })}
-          className="text-sm font-semibold tracking-tight text-forest hover:underline"
-        >
-          All recent batches
-        </Link>
-      </div>
-      <NewsList
-        {...result}
-        values={values}
-        grouped={false}
-        empty="No companies in this batch matched that search."
-      />
-    </>
+    <NewsList
+      {...result}
+      values={values}
+      empty="No companies in this batch matched that search."
+    />
   );
 }
 
@@ -298,7 +272,7 @@ export default function StartupsPage(props: PageProps<"/startups">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
           Startup discovery
         </p>

@@ -40,24 +40,11 @@ export function newsHeadline(item: StartupNewsItem) {
   return `${item.company} announced funding`;
 }
 
-export function newsDateLabel(date: Date | null) {
+export function isFreshNews(date: Date | null, withinDays = 14) {
   if (!date) {
-    return null;
+    return false;
   }
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-export function newsMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+  return Date.now() - date.getTime() < withinDays * 24 * 60 * 60 * 1000;
 }
 
 export function industryTags(industry: string | null) {
@@ -69,44 +56,4 @@ export function industryTags(industry: string | null) {
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0 && tag.toLowerCase() !== "unspecified")
     .slice(0, 5);
-}
-
-export function groupNewsByBatch(items: StartupNewsItem[]) {
-  const groups: { key: string; label: string; items: StartupNewsItem[] }[] = [];
-
-  for (const item of items) {
-    const key = item.ycBatch ?? "unknown";
-    const label = item.ycBatch ?? "Batch not listed";
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) {
-      last.items.push(item);
-    } else {
-      groups.push({ key, label, items: [item] });
-    }
-  }
-
-  return groups;
-}
-
-export function groupNewsByMonth(items: StartupNewsItem[]) {
-  const groups: { key: string; label: string; items: StartupNewsItem[] }[] = [];
-
-  for (const item of items) {
-    const key = item.announcedAt
-      ? `${item.announcedAt.getUTCFullYear()}-${String(item.announcedAt.getUTCMonth() + 1).padStart(2, "0")}`
-      : "unknown";
-    const label = item.announcedAt ? newsMonthLabel(item.announcedAt) : "Date not listed";
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) {
-      last.items.push(item);
-    } else {
-      groups.push({ key, label, items: [item] });
-    }
-  }
-
-  return groups;
-}
-
-export function sourceUrlLabel(source: string) {
-  return source === "yc" ? "YC profile" : "Source";
 }

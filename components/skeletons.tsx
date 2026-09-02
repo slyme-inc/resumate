@@ -229,10 +229,13 @@ export function StartupNewsSkeleton() {
       <div className="mt-6" aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading startup news</span>
         <Skeleton width={168} height={12} />
-        <div className="mt-4 space-y-4">
-          <JobCardSkeleton />
-          <JobCardSkeleton />
-          <JobCardSkeleton />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
         </div>
       </div>
     </Themed>
@@ -254,10 +257,13 @@ export function StartupSessionSkeleton() {
         <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
           <Skeleton height={42} />
         </div>
-        <div className="mt-6 space-y-4">
-          <JobCardSkeleton />
-          <JobCardSkeleton />
-          <JobCardSkeleton />
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
         </div>
       </div>
     </Themed>
