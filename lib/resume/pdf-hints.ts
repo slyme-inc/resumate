@@ -150,11 +150,12 @@ export function getPdfHintRect(
   if (!node) {
     return null;
   }
-  const box = node.getBoundingClientRect();
+  const target = node.querySelector<HTMLElement>("[data-pdf-hint-new]") ?? node;
+  const box = target.getBoundingClientRect();
   const origin = relativeTo.getBoundingClientRect();
   return {
-    top: box.top - origin.top + relativeTo.scrollTop,
-    left: box.left - origin.left + relativeTo.scrollLeft,
+    top: box.top - origin.top,
+    left: box.left - origin.left,
     width: box.width,
     height: box.height,
   };

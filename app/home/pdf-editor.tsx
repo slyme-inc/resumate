@@ -41,6 +41,16 @@ function nextId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+function scaleToContainer(containerWidth: number, pageWidth: number, gutter = 0) {
+  const available = containerWidth - gutter;
+  if (available <= 0 || pageWidth <= 0) {
+    return 1;
+  }
+  return available / pageWidth;
+}
+
+const HINT_GUTTER = 56;
+
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -154,16 +164,66 @@ function SignaturePad({
   );
 }
 
+function PdfHintBox({
+  run,
+  scale,
+  suggested,
+}: {
+  run: PdfTextRun;
+  scale: number;
+  suggested: string;
+}) {
+  const lineHeight = Math.max(run.height, run.fontSize) * scale;
+  const typeStyle = {
+    fontSize: run.fontSize * scale,
+    fontFamily: cssFontFamily(run.fontFamily),
+    fontWeight: run.bold ? 700 : 400,
+    fontStyle: run.italic ? "italic" : "normal",
+  } as const;
+
+  return (
+    <div
+      data-pdf-run={run.id}
+      data-hint="true"
+      className="resume-pdf-hint absolute"
+      style={{
+        left: run.x * scale,
+        top: run.y * scale,
+        maxWidth: `calc(100% - ${run.x * scale}px)`,
+        ...typeStyle,
+      }}
+    >
+      <div
+        className="resume-pdf-hint-old"
+        style={{
+          minWidth: run.width * scale,
+          minHeight: run.height * scale,
+          lineHeight: `${lineHeight}px`,
+        }}
+      >
+        {run.text}
+      </div>
+      <div
+        data-pdf-hint-new=""
+        className="resume-pdf-hint-new"
+        style={{ lineHeight: `${lineHeight}px` }}
+      >
+        {suggested}
+      </div>
+    </div>
+  );
+}
+
 function PdfRunBox({
   run,
   scale,
-  hinted,
+  suggested,
   readOnly,
   onChange,
 }: {
   run: PdfTextRun;
   scale: number;
-  hinted: boolean;
+  suggested: string | null;
   readOnly: boolean;
   onChange: (text: string) => void;
 }) {
@@ -180,12 +240,17 @@ function PdfRunBox({
     }
   }, [run.text]);
 
+  if (suggested != null) {
+    return <PdfHintBox run={run} scale={scale} suggested={suggested} />;
+  }
+
+  const lineHeight = Math.max(run.height, run.fontSize) * scale;
   return (
     <div
       ref={ref}
       data-pdf-run={run.id}
       data-dirty={isRunDirty(run) ? "true" : "false"}
-      data-hint={hinted ? "true" : "false"}
+      data-hint="false"
       data-added={run.added ? "true" : "false"}
       role="textbox"
       tabIndex={readOnly ? -1 : 0}
@@ -198,7 +263,7 @@ function PdfRunBox({
         minWidth: run.width * scale,
         minHeight: run.height * scale,
         fontSize: run.fontSize * scale,
-        lineHeight: `${Math.max(run.height, run.fontSize) * scale}px`,
+        lineHeight: `${lineHeight}px`,
         fontFamily: cssFontFamily(run.fontFamily),
         fontWeight: run.bold ? 700 : 400,
         fontStyle: run.italic ? "italic" : "normal",
@@ -275,7 +340,7 @@ export function PdfEditor({
   const [scale, setScale] = useState(1);
   const [runs, setRuns] = useState<PdfTextRun[]>([]);
   const [images, setImages] = useState<PdfImageOverlay[]>([]);
-  const [hintIds, setHintIds] = useState<Set<string>>(new Set());
+  const [hintByRunId, setHintByRunId] = useState<Record<string, string>>({});
   const [tool, setTool] = useState<Tool>("select");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [signOpen, setSignOpen] = useState(false);
@@ -392,7 +457,8 @@ export function PdfEditor({
 
         const width = scroller?.clientWidth ?? 720;
         const pageWidth = sizes[0]?.width || 612;
-        setScale(Math.max(0.7, Math.min(1.45, (width - 48) / pageWidth)));
+        const gutter = documentMode === "suggesting" ? HINT_GUTTER : 0;
+        setScale(scaleToContainer(width, pageWidth, gutter));
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : "We could not open that PDF.");
@@ -413,13 +479,14 @@ export function PdfEditor({
       return;
     }
     const pageWidth = pageSizesRef.current[0]?.width || 612;
+    const gutter = documentMode === "suggesting" ? HINT_GUTTER : 0;
     const resize = () => {
-      setScale(Math.max(0.7, Math.min(1.45, (scroller.clientWidth - 48) / pageWidth)));
+      setScale(scaleToContainer(scroller.clientWidth, pageWidth, gutter));
     };
     const observer = new ResizeObserver(resize);
     observer.observe(scroller);
     return () => observer.disconnect();
-  }, [loadedSrc]);
+  }, [loadedSrc, documentMode]);
 
   useEffect(() => {
     if (!loadedSrc || !originalBytes.current) {
@@ -449,7 +516,13 @@ export function PdfEditor({
           return { pending: [], missed: hints.length, aborted: true };
         }
         const result = applyPdfHints(runsRef.current, hints, signal);
-        setHintIds(new Set(result.pending.map((anchor) => String(anchor.nodeId))));
+        const next: Record<string, string> = {};
+        for (const anchor of result.pending) {
+          if (typeof anchor.nodeId === "string") {
+            next[anchor.nodeId] = anchor.suggested;
+          }
+        }
+        setHintByRunId(next);
         return result;
       },
       acceptHint: async (anchor) => {
@@ -458,18 +531,18 @@ export function PdfEditor({
           return false;
         }
         updateRuns(next);
-        setHintIds((prev) => {
-          const copy = new Set(prev);
-          copy.delete(String(anchor.nodeId));
+        setHintByRunId((prev) => {
+          const copy = { ...prev };
+          delete copy[String(anchor.nodeId)];
           return copy;
         });
         markDirty();
         return true;
       },
       rejectHint: async (anchor) => {
-        setHintIds((prev) => {
-          const copy = new Set(prev);
-          copy.delete(String(anchor.nodeId));
+        setHintByRunId((prev) => {
+          const copy = { ...prev };
+          delete copy[String(anchor.nodeId)];
           return copy;
         });
         return true;
@@ -653,7 +726,10 @@ export function PdfEditor({
         ref={scrollerRef}
         className="resume-pdf-scroller min-h-0 min-w-0 flex-1 overflow-auto"
       >
-        <div className="flex flex-col items-center gap-6 px-6 py-6">
+        <div
+          className="flex w-full flex-col"
+          style={documentMode === "suggesting" ? { paddingLeft: HINT_GUTTER } : undefined}
+        >
           {pages.map((item, pageIndex) => (
             <div
               key={pageIndex}
@@ -674,7 +750,7 @@ export function PdfEditor({
                     key={run.id}
                     run={run}
                     scale={scale}
-                    hinted={hintIds.has(run.id)}
+                    suggested={hintByRunId[run.id] ?? null}
                     readOnly={readOnly}
                     onChange={(text) => {
                       updateRuns((prev) =>

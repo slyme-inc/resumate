@@ -297,6 +297,7 @@ function HintedDocument({
       if (!root || !editor) {
         return;
       }
+      const overlayBox = root.getBoundingClientRect();
       const scroller =
         root.querySelector<HTMLElement>(".superdoc-editor-container") ??
         root.querySelector<HTMLElement>(".resume-pdf-scroller") ??
@@ -308,17 +309,31 @@ function HintedDocument({
       const pageBox = page?.getBoundingClientRect();
       const measured = editor.getHintRects(pendingRef.current, scroller);
       const next: Record<string, HintRect> = {};
-      const buttonHeight = 28;
+      const buttonHeight = 24;
       const buttonWidth = 40;
       for (const [key, rect] of Object.entries(measured)) {
-        const top = view.top + rect.top + (rect.height - buttonHeight) / 2;
-        if (top + buttonHeight < view.top || top > view.bottom) {
+        const anchor = pendingRef.current.find((item) => item.key === key);
+        const nodeId = typeof anchor?.nodeId === "string" ? anchor.nodeId : null;
+        const green = nodeId
+          ? root.querySelector<HTMLElement>(
+              `[data-pdf-run="${CSS.escape(nodeId)}"] [data-pdf-hint-new]`,
+            )
+          : null;
+        const greenBox = green?.getBoundingClientRect();
+        const viewportTop = greenBox
+          ? greenBox.top + (greenBox.height - buttonHeight) / 2
+          : view.top + rect.top + (rect.height - buttonHeight) / 2;
+        if (viewportTop + buttonHeight < view.top || viewportTop > view.bottom) {
           continue;
         }
         const pageLeft = pageBox?.left ?? view.left + rect.left;
+        const viewportLeft = Math.max(
+          overlayBox.left + 8,
+          pageLeft - buttonWidth - 8,
+        );
         next[key] = {
-          top,
-          left: Math.max(8, pageLeft - buttonWidth - 8),
+          top: viewportTop - overlayBox.top,
+          left: viewportLeft - overlayBox.left,
           width: buttonWidth,
           height: buttonHeight,
         };
@@ -326,7 +341,9 @@ function HintedDocument({
       setRects(next);
     }
 
-    const frame = requestAnimationFrame(measure);
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(measure);
+    });
     const stop = api.observeViewport(measure);
     return () => {
       cancelAnimationFrame(frame);
@@ -429,7 +446,7 @@ function HintButtons({
 }) {
   return (
     <div
-      className="pointer-events-auto fixed z-40 flex border border-line bg-card shadow-sm"
+      className="pointer-events-auto absolute z-40 flex border border-line bg-card shadow-sm"
       style={style}
     >
       <button

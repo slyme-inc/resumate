@@ -8,7 +8,10 @@
 
 .resume-pdf-page {
   background: #fff;
-  box-shadow: 0 1px 3px rgba(18, 26, 23, 0.08), 0 12px 28px rgba(18, 26, 23, 0.06);
+}
+
+.resume-pdf-page + .resume-pdf-page {
+  box-shadow: inset 0 1px 0 rgba(18, 26, 23, 0.12);
 }
 
 .resume-pdf-run {
@@ -24,7 +27,7 @@
   caret-color: var(--ink);
 }
 
-.resume-pdf-run:hover {
+.resume-pdf-run:not([data-hint="true"]):hover {
   outline: 1px dashed rgba(27, 79, 62, 0.35);
   background: rgba(255, 255, 255, 0.55);
 }
@@ -36,10 +39,44 @@
   outline: 1px solid rgba(27, 79, 62, 0.35);
 }
 
-.resume-pdf-run[data-hint="true"] {
-  outline: 1px dashed #1f6feb;
-  background: #1f6feb22;
+.resume-pdf-hint {
+  z-index: 6;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
   color: var(--ink);
+  background: transparent;
+  white-space: pre-wrap;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.resume-pdf-hint-old,
+.resume-pdf-hint-new {
+  display: block;
+  position: relative;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  padding: 0 0.12em;
+  white-space: pre-wrap;
+}
+
+.resume-pdf-hint-old {
+  color: #cf222e;
+  background: #ffebe9;
+  box-shadow: 0 0 0 2px #ffebe9;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.resume-pdf-hint-new {
+  margin-top: 2px;
+  color: #1a7f37;
+  background: #dafbe1;
+  box-shadow: 0 0 0 2px #dafbe1;
+  text-decoration: none;
 }
 
 .resume-pdf-run[data-added="true"] {
