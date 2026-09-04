@@ -20,7 +20,7 @@ import {
   type PdfPageSize,
   type PdfTextRun,
 } from "@/lib/resume/pdf-runs";
-import { Image as ImageIcon, Signature, TextT, X } from "@phosphor-icons/react";
+import { Image as ImageIcon, TextT, X } from "@phosphor-icons/react";
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type PDFPageProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import "@/app/home/pdf-editor.css";
@@ -29,7 +29,7 @@ if (typeof window !== "undefined" && !GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
 }
 
-type Tool = "select" | "text" | "image" | "signature";
+type Tool = "select" | "text" | "image";
 
 type LoadedPage = {
   page: PDFPageProxy;
@@ -60,108 +60,6 @@ function fileToDataUrl(file: File) {
     reader.onerror = () => reject(new Error("We could not read that image."));
     reader.readAsDataURL(file);
   });
-}
-
-function SignaturePad({
-  onCancel,
-  onConfirm,
-}: {
-  onCancel: () => void;
-  onConfirm: (dataUrl: string) => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing = useRef(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = 420 * ratio;
-    canvas.height = 140 * ratio;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.scale(ratio, ratio);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, 420, 140);
-    ctx.strokeStyle = "#121a17";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }, []);
-
-  function point(event: React.PointerEvent<HTMLCanvasElement>) {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return null;
-    }
-    const box = canvas.getBoundingClientRect();
-    return { x: event.clientX - box.left, y: event.clientY - box.top };
-  }
-
-  return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgba(18,26,23,0.28)] p-6">
-      <div className="w-full max-w-md rounded-[14px] border border-line bg-card p-4 shadow-sm">
-        <p className="text-sm font-semibold tracking-tight text-ink">Draw a signature</p>
-        <canvas
-          ref={canvasRef}
-          className="mt-3 h-[140px] w-full cursor-crosshair rounded-[10px] border border-line bg-white"
-          style={{ width: "100%", height: 140 }}
-          onPointerDown={(event) => {
-            drawing.current = true;
-            event.currentTarget.setPointerCapture(event.pointerId);
-            const ctx = canvasRef.current?.getContext("2d");
-            const at = point(event);
-            if (!ctx || !at) {
-              return;
-            }
-            ctx.beginPath();
-            ctx.moveTo(at.x, at.y);
-          }}
-          onPointerMove={(event) => {
-            if (!drawing.current) {
-              return;
-            }
-            const ctx = canvasRef.current?.getContext("2d");
-            const at = point(event);
-            if (!ctx || !at) {
-              return;
-            }
-            ctx.lineTo(at.x, at.y);
-            ctx.stroke();
-          }}
-          onPointerUp={() => {
-            drawing.current = false;
-          }}
-        />
-        <div className="mt-3 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-[10px] border border-line-strong px-3 py-1.5 text-sm font-semibold tracking-tight text-ink"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const canvas = canvasRef.current;
-              if (!canvas) {
-                return;
-              }
-              onConfirm(canvas.toDataURL("image/png"));
-            }}
-            className="rounded-[10px] bg-forest px-3 py-1.5 text-sm font-semibold tracking-tight text-paper"
-          >
-            Use signature
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function PdfHintBox({
@@ -343,7 +241,6 @@ export function PdfEditor({
   const [hintByRunId, setHintByRunId] = useState<Record<string, string>>({});
   const [tool, setTool] = useState<Tool>("select");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
-  const [signOpen, setSignOpen] = useState(false);
 
   const originalBytes = useRef<Uint8Array | null>(null);
   const runsRef = useRef<PdfTextRun[]>([]);
@@ -708,15 +605,6 @@ export function PdfEditor({
                   }}
                 />
               </label>
-              <button
-                type="button"
-                title="Add signature"
-                onClick={() => setSignOpen(true)}
-                className="resume-pdf-tool inline-flex items-center gap-1.5 rounded-[10px] border border-line-strong bg-card px-2.5 py-1.5 text-sm font-semibold tracking-tight text-ink"
-              >
-                <Signature size={15} weight="bold" />
-                Sign
-              </button>
             </>
           )}
           {actions}
@@ -802,16 +690,6 @@ export function PdfEditor({
         <p className="border-t border-line bg-card px-6 py-2 text-xs text-muted">
           {pendingImage ? "Click the page to place the image." : "Click the page to add a text box."}
         </p>
-      ) : null}
-      {signOpen ? (
-        <SignaturePad
-          onCancel={() => setSignOpen(false)}
-          onConfirm={(dataUrl) => {
-            setSignOpen(false);
-            setPendingImage(dataUrl);
-            setTool("signature");
-          }}
-        />
       ) : null}
     </div>
   );
