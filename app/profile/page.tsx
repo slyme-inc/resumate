@@ -1,5 +1,6 @@
 import { ProfileForm } from "@/app/profile/profile-form";
 import { ProfileResumePanel } from "@/app/profile/profile-resume";
+import { AppHeader } from "@/components/app-header";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { requireResume } from "@/lib/auth/session";
 import { getUserResumeAndProfile } from "@/lib/db/profile";
@@ -18,6 +19,8 @@ export default async function ProfilePage() {
   const stored = profile ?? heuristicStoredProfile(resume);
 
   return (
+    <div className="flex h-dvh flex-col">
+      <AppHeader />
     <ProfileResumePanel
       fileName={fileMeta?.fileName ?? resume.fileName}
       fileVersion={fileMeta ? String(fileMeta.updatedAt.getTime()) : null}
@@ -70,5 +73,6 @@ export default async function ProfilePage() {
         </section>
       ) : null}
     </ProfileResumePanel>
+    </div>
   );
 }

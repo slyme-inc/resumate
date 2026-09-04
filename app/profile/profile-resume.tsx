@@ -2,7 +2,6 @@
 
 import { parseResumeAction } from "@/app/actions/resume";
 import { ResumeDocument } from "@/app/home/resume-document";
-import { AppHeader } from "@/components/app-header";
 import { ResumePreviewSkeleton } from "@/components/skeletons";
 import { asResumeFileName, isResumeFileName } from "@/lib/resume/file-type";
 import { useRouter } from "next/navigation";
@@ -123,18 +122,11 @@ export function ProfileResumePanel({
   );
 
   if (!open) {
-    return (
-      <div className="flex min-h-dvh flex-col">
-        <AppHeader />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">{body}</main>
-      </div>
-    );
+    return <main className="mx-auto w-full max-w-3xl min-h-0 flex-1 overflow-y-auto px-6 py-10">{body}</main>;
   }
 
   return (
-    <div className="flex h-dvh flex-col">
-      <AppHeader />
-      <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1">
         <main className="min-h-0 flex-1 overflow-y-auto px-6 py-10 lg:w-1/2">
           <div className="mx-auto w-full max-w-3xl">{body}</div>
         </main>
@@ -151,7 +143,6 @@ export function ProfileResumePanel({
           </div>
           <div className="min-h-0 flex-1">{documentPane}</div>
         </aside>
-      </div>
     </div>
   );
 }

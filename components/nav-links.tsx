@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const PRIMARY_LINKS = [
   { href: "/jobs", label: "Jobs" },
   { href: "/saved", label: "Saved" },
-  { href: "/profile", label: "Profile" },
 ] as const;
 
 const DISCOVERY_LINKS = [
