@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  serverExternalPackages: ["mammoth"],
+  serverExternalPackages: ["mammoth", "unpdf", "pdfjs-dist"],
   transpilePackages: ["@superdoc-dev/react", "@superdoc-dev/fonts", "superdoc"],
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],

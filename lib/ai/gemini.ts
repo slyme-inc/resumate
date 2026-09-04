@@ -44,7 +44,12 @@ function parseJson<T>(text: string): T {
   return JSON.parse(raw) as T;
 }
 
-async function generateOnce(model: string, prompt: string, timeoutMs = REQUEST_TIMEOUT_MS) {
+async function generateOnce(
+  model: string,
+  prompt: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+  options?: { temperature?: number; maxOutputTokens?: number },
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -61,9 +66,9 @@ async function generateOnce(model: string, prompt: string, timeoutMs = REQUEST_T
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.2,
+            temperature: options?.temperature ?? 0.2,
             responseMimeType: "application/json",
-            maxOutputTokens: 1536,
+            maxOutputTokens: options?.maxOutputTokens ?? 1536,
             thinkingConfig: { thinkingBudget: 0 },
           },
         }),
@@ -93,7 +98,7 @@ async function generateOnce(model: string, prompt: string, timeoutMs = REQUEST_T
 
 export async function generateJson<T>(
   prompt: string,
-  options?: { deadlineMs?: number },
+  options?: { deadlineMs?: number; temperature?: number; maxOutputTokens?: number },
 ): Promise<T> {
   let lastError: unknown;
   const deadline = Date.now() + (options?.deadlineMs ?? MODELS.length * REQUEST_TIMEOUT_MS);
@@ -104,7 +109,10 @@ export async function generateJson<T>(
       break;
     }
     try {
-      return (await generateOnce(model, prompt, Math.min(REQUEST_TIMEOUT_MS, remaining))) as T;
+      return (await generateOnce(model, prompt, Math.min(REQUEST_TIMEOUT_MS, remaining), {
+        temperature: options?.temperature,
+        maxOutputTokens: options?.maxOutputTokens,
+      })) as T;
     } catch (error) {
       lastError = error;
       if (error instanceof Error && (error.name === "GeminiQuotaError" || isQuotaMessage(error.message))) {

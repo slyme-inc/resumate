@@ -1,11 +1,18 @@
 "use client";
 
-import { parseResumeAction, saveResumeDocxAction } from "@/app/actions/resume";
+import { parseResumeAction, saveResumeDocxAction, saveResumePdfAction } from "@/app/actions/resume";
 import { EmptyResumeState } from "@/app/home/empty-resume-state";
 import { ResumeDocument } from "@/app/home/resume-document";
 import { ResumePreview } from "@/app/home/resume-preview";
 import { ResumePreviewSkeleton } from "@/components/skeletons";
-import { asDocxFileName, DOCX_CONTENT_TYPE } from "@/lib/resume/file-type";
+import {
+  asDocxFileName,
+  asPdfFileName,
+  asResumeFileName,
+  DOCX_CONTENT_TYPE,
+  isPdfContentType,
+  PDF_CONTENT_TYPE,
+} from "@/lib/resume/file-type";
 import type { DocxEditorApi } from "@/app/home/docx-editor";
 import type { ParsedResume } from "@/lib/resume/types";
 import { FilePdf } from "@phosphor-icons/react";
@@ -30,6 +37,7 @@ export function ResumeWorkspace({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const isPdf = isPdfContentType(contentType);
 
   async function handleFile(file: File) {
     setFileName(file.name);
@@ -71,6 +79,27 @@ export function ResumeWorkspace({
     setSaving(true);
     setError(null);
     try {
+      if (isPdf) {
+        const blob = await api.exportPdf();
+        if (!blob) {
+          setError("We could not export the document.");
+          return;
+        }
+        const formData = new FormData();
+        formData.set(
+          "resume",
+          new File([blob], asPdfFileName(fileName), { type: PDF_CONTENT_TYPE }),
+        );
+        const result = await saveResumePdfAction(formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setResume(result.resume);
+        setDirty(false);
+        return;
+      }
+
       const blob = await api.exportDocx();
       if (!blob) {
         setError("We could not export the document.");
@@ -105,7 +134,7 @@ export function ResumeWorkspace({
     try {
       const blob = await api.exportPdf({
         download: true,
-        fileName: asDocxFileName(fileName).replace(/\.docx$/i, ""),
+        fileName: asResumeFileName(fileName, contentType).replace(/\.(docx|pdf)$/i, ""),
       });
       if (!blob) {
         setError("The résumé is still loading.");
@@ -144,7 +173,7 @@ export function ResumeWorkspace({
           <ResumeDocument
             fileSrc={fileSrc}
             contentType={contentType}
-            fileName={asDocxFileName(fileName ?? resume.fileName)}
+            fileName={asResumeFileName(fileName ?? resume.fileName, contentType)}
             onDirty={() => setDirty(true)}
             onReady={(api) => {
               editorApi.current = api;
@@ -158,7 +187,7 @@ export function ResumeWorkspace({
                   className="inline-flex items-center gap-1.5 rounded-[10px] border border-line-strong bg-card px-3 py-1.5 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-paper disabled:opacity-60"
                 >
                   <FilePdf size={16} weight="bold" />
-                  {exportingPdf ? "Exporting…" : "Export PDF"}
+                  {exportingPdf ? "Exporting…" : isPdf ? "Download PDF" : "Export PDF"}
                 </button>
                 {dirty ? (
                   <button

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const ACCEPT_EXTENSIONS = new Set([".docx"]);
+const ACCEPT_EXTENSIONS = new Set([".docx", ".pdf"]);
 
 function isResumeFile(file: File) {
   const name = file.name.toLowerCase();
@@ -40,7 +40,7 @@ export function EmptyResumeState({
     }
 
     if (!isResumeFile(file)) {
-      onInvalid("Use a Word (.docx) file.");
+      onInvalid("Use a Word (.docx) or PDF file.");
       return;
     }
 
@@ -83,7 +83,7 @@ export function EmptyResumeState({
         <input
           id={inputId}
           type="file"
-          accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
           className="sr-only"
           disabled={pending}
           onChange={(event) => {
@@ -95,7 +95,7 @@ export function EmptyResumeState({
           {pending ? "Analyzing your experience…" : "Upload résumé"}
         </span>
         <span className="mt-3 block text-sm text-muted">
-          Word (.docx) · drop a file here
+          Word (.docx) or PDF · drop a file here
         </span>
         {fileName ? (
           <span className="mt-3 block font-mono text-sm text-ink">{fileName}</span>

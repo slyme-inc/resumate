@@ -9,6 +9,8 @@ export type OssRepoItem = {
   ycSlug: string | null;
   ycBatch: string | null;
   industry: string | null;
+  website: string | null;
+  sourceUrl: string | null;
   repoUrl: string | null;
   fullName: string;
   description: string | null;
@@ -39,12 +41,30 @@ function asDate(value: Date | string | null): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+const REPO_COLUMNS = {
+  id: ossRepo.id,
+  company: ossRepo.company,
+  ycSlug: ossRepo.ycSlug,
+  ycBatch: fundingRound.ycBatch,
+  industry: fundingRound.industry,
+  website: fundingRound.website,
+  sourceUrl: fundingRound.sourceUrl,
+  repoUrl: ossRepo.repoUrl,
+  fullName: ossRepo.fullName,
+  description: ossRepo.description,
+  stars: ossRepo.stars,
+  language: ossRepo.language,
+  pushedAt: ossRepo.pushedAt,
+} as const;
+
 function serializeRepo(row: {
   id: string;
   company: string | null;
   ycSlug: string | null;
   ycBatch: string | null;
   industry: string | null;
+  website: string | null;
+  sourceUrl: string | null;
   repoUrl: string | null;
   fullName: string | null;
   description: string | null;
@@ -59,6 +79,8 @@ function serializeRepo(row: {
     ycSlug: row.ycSlug,
     ycBatch: row.ycBatch,
     industry: row.industry,
+    website: row.website,
+    sourceUrl: row.sourceUrl,
     repoUrl: row.repoUrl,
     fullName: row.fullName?.trim() || row.id,
     description: row.description,
@@ -97,19 +119,7 @@ async function queryOssRepoPool(needle: string | null) {
   const where = and(...conditions);
 
   const rows = await getDb()
-    .select({
-      id: ossRepo.id,
-      company: ossRepo.company,
-      ycSlug: ossRepo.ycSlug,
-      ycBatch: fundingRound.ycBatch,
-      industry: fundingRound.industry,
-      repoUrl: ossRepo.repoUrl,
-      fullName: ossRepo.fullName,
-      description: ossRepo.description,
-      stars: ossRepo.stars,
-      language: ossRepo.language,
-      pushedAt: ossRepo.pushedAt,
-    })
+    .select(REPO_COLUMNS)
     .from(ossRepo)
     .leftJoin(
       fundingRound,
@@ -134,6 +144,35 @@ const loadOssRepoPool = unstable_cache(queryOssRepoPool, ["oss-repo-pool"], {
 export async function listOssRepoPool(options: { query?: string | null }) {
   const rows = await loadOssRepoPool(searchNeedle(options.query ?? null));
   return rows.map(reviveRepo);
+}
+
+async function queryOssRepo(id: string) {
+  const needle = id.trim();
+  if (!needle) {
+    return null;
+  }
+
+  const [row] = await getDb()
+    .select(REPO_COLUMNS)
+    .from(ossRepo)
+    .leftJoin(
+      fundingRound,
+      and(eq(fundingRound.source, "yc"), eq(fundingRound.ycSlug, ossRepo.ycSlug)),
+    )
+    .where(or(eq(ossRepo.id, needle), eq(ossRepo.fullName, needle)))
+    .limit(1);
+
+  return row ? serializeRepo(row) : null;
+}
+
+const loadOssRepo = unstable_cache(queryOssRepo, ["oss-repo"], {
+  revalidate: 120,
+  tags: ["oss-repos"],
+});
+
+export async function getOssRepo(id: string) {
+  const row = await loadOssRepo(id);
+  return row ? reviveRepo(row) : null;
 }
 
 export { PAGE_SIZE as OSS_REPO_PAGE_SIZE };

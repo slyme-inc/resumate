@@ -1,6 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { OssFilters, ossHref, type OssFilterValues } from "@/components/oss-filters";
-import { OssRepoCard } from "@/components/oss-repo-card";
+import { OSS_REPO_GRID, OssRepoCard } from "@/components/oss-repo-card";
 import { OssSessionSkeleton } from "@/components/skeletons";
 import { requireUserId } from "@/lib/auth/session";
 import { loadCandidateProfile } from "@/lib/matching/feed";
@@ -117,7 +117,7 @@ async function OssSession({
           </p>
         </div>
       ) : (
-        <div className="mt-4 space-y-4">
+        <div className={OSS_REPO_GRID}>
           {result.items.map((item) => (
             <OssRepoCard key={item.repo.id} item={item} />
           ))}
@@ -132,7 +132,7 @@ export default function OpenSourcePage(props: PageProps<"/open-source">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-forest">
           Open source discovery
         </p>

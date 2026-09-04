@@ -77,8 +77,8 @@ export const users = pgTable(
 
 /**
  * The parsed JSON on `users.resume` is a lossy reading of the document. Keeping
- * the original DOCX bytes lets the editor render the résumé as the candidate
- * laid it out.
+ * the original DOCX or PDF bytes lets the editor render the résumé as the
+ * candidate laid it out.
  */
 export const resumeFile = pgTable(
   "resume_file",

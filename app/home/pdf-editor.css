@@ -1,0 +1,58 @@
+.resume-pdf-editor {
+  background: #f3f3f3;
+}
+
+.resume-pdf-scroller {
+  background: #f3f3f3;
+}
+
+.resume-pdf-page {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(18, 26, 23, 0.08), 0 12px 28px rgba(18, 26, 23, 0.06);
+}
+
+.resume-pdf-run {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  white-space: pre;
+  overflow: visible;
+  cursor: text;
+  color: transparent;
+  background: transparent;
+  caret-color: var(--ink);
+}
+
+.resume-pdf-run:hover {
+  outline: 1px dashed rgba(27, 79, 62, 0.35);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.resume-pdf-run:focus,
+.resume-pdf-run[data-dirty="true"] {
+  color: var(--ink);
+  background: #fff;
+  outline: 1px solid rgba(27, 79, 62, 0.35);
+}
+
+.resume-pdf-run[data-hint="true"] {
+  outline: 1px dashed #1f6feb;
+  background: #1f6feb22;
+  color: var(--ink);
+}
+
+.resume-pdf-run[data-added="true"] {
+  color: var(--ink);
+  background: #fff;
+  outline: 1px dashed rgba(27, 79, 62, 0.45);
+}
+
+.resume-pdf-image {
+  box-shadow: 0 0 0 1px rgba(27, 79, 62, 0.2);
+}
+
+.resume-pdf-tool[data-active="true"] {
+  background: var(--forest-soft);
+  color: var(--forest);
+}

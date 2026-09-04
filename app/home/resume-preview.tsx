@@ -127,8 +127,8 @@ export function ResumePreview({
     return (
       <div className="flex h-full min-h-full items-center justify-center px-8 text-center">
         <p className="max-w-xs text-[15px] leading-relaxed text-muted">
-          Upload a Word (.docx) file on the left. It opens on the right as the
-          original document, ready to edit.
+          Upload a Word (.docx) or PDF file on the left. It opens on the right
+          as the original document, ready to edit.
         </p>
       </div>
     );

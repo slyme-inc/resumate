@@ -4,7 +4,7 @@ import { parseResumeAction } from "@/app/actions/resume";
 import { ResumeDocument } from "@/app/home/resume-document";
 import { AppHeader } from "@/components/app-header";
 import { ResumePreviewSkeleton } from "@/components/skeletons";
-import { asDocxFileName } from "@/lib/resume/file-type";
+import { asResumeFileName, isResumeFileName } from "@/lib/resume/file-type";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
@@ -88,7 +88,7 @@ export function ProfileResumePanel({
               ref={inputRef}
               id="profile-resume-replace"
               type="file"
-              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
               className="sr-only"
               disabled={pending}
               onChange={(event) => {
@@ -97,8 +97,8 @@ export function ProfileResumePanel({
                 if (!file) {
                   return;
                 }
-                if (!file.name.toLowerCase().endsWith(".docx")) {
-                  setError("Use a Word (.docx) file.");
+                if (!isResumeFileName(file.name)) {
+                  setError("Use a Word (.docx) or PDF file.");
                   return;
                 }
                 void handleFile(file);
@@ -118,7 +118,7 @@ export function ProfileResumePanel({
     <ResumeDocument
       fileSrc={fileSrc}
       contentType={type}
-      fileName={asDocxFileName(name)}
+      fileName={asResumeFileName(name, type)}
     />
   );
 

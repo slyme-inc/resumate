@@ -285,10 +285,13 @@ export function OssSessionSkeleton() {
         <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
           <Skeleton height={42} />
         </div>
-        <div className="mt-6 space-y-4">
-          <JobCardSkeleton />
-          <JobCardSkeleton />
-          <JobCardSkeleton />
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
+          <div className="aspect-[3/2] rounded-[14px] border border-line bg-card" />
         </div>
       </div>
     </Themed>
@@ -351,6 +354,52 @@ export function HomeWorkspaceSkeleton() {
         <ResumePreviewSkeleton />
       </section>
     </div>
+    </Themed>
+  );
+}
+
+export function OssDetailSkeleton() {
+  return (
+    <Themed>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading repository</span>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:w-1/2">
+          <div className="flex items-start gap-5">
+            <Skeleton width={56} height={56} borderRadius={14} />
+            <div className="min-w-0 flex-1">
+              <Skeleton width="70%" height={32} />
+              <div className="mt-3">
+                <Skeleton width="40%" height={16} />
+              </div>
+            </div>
+          </div>
+          <div className="mt-8 space-y-6">
+            <Card>
+              <Skeleton width={140} height={11} />
+              <div className="mt-4">
+                <Skeleton count={4} height={14} className="mb-2" />
+              </div>
+            </Card>
+            <Card>
+              <Skeleton width={180} height={11} />
+              <div className="mt-4">
+                <Skeleton count={5} height={14} className="mb-2" />
+              </div>
+            </Card>
+          </div>
+        </div>
+        <aside className="flex min-h-[55vh] flex-1 flex-col border-t border-line bg-card lg:min-h-0 lg:w-1/2 lg:border-t-0 lg:border-l">
+          <div className="border-b border-line px-5 py-3">
+            <Skeleton width={88} height={11} />
+          </div>
+          <div className="px-5 py-6">
+            <Skeleton width="55%" height={24} />
+            <div className="mt-4">
+              <Skeleton count={8} height={14} className="mb-2" />
+            </div>
+          </div>
+        </aside>
+      </div>
     </Themed>
   );
 }

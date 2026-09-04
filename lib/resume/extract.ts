@@ -1,10 +1,14 @@
 import {
   htmlToPlainText,
   linksFromHtml,
+  linksFromText,
   mergeLinks,
+  toResumeLink,
   withVisibleAnchorText,
 } from "@/lib/resume/links";
+import type { ResumeLink } from "@/lib/resume/types";
 import mammoth from "mammoth";
+import { extractLinks, extractText } from "unpdf";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -22,17 +26,23 @@ export function assertResumeFile(fileName: string, byteLength: number) {
   }
 
   const extension = extensionOf(fileName);
-  if (extension === ".doc" || extension === ".pdf") {
+  if (extension === ".doc") {
     throw new Error("Save the file as DOCX from Word or Google Docs.");
   }
-  if (extension !== ".docx") {
-    throw new Error("Use a Word (.docx) file.");
+  if (extension !== ".docx" && extension !== ".pdf") {
+    throw new Error("Use a Word (.docx) or PDF file.");
   }
 }
 
-function assertFileSignature(bytes: Uint8Array) {
+function assertDocxSignature(bytes: Uint8Array) {
   if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
     throw new Error("That file is not a valid DOCX.");
+  }
+}
+
+function assertPdfSignature(bytes: Uint8Array) {
+  if (bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46) {
+    throw new Error("That file is not a valid PDF.");
   }
 }
 
@@ -60,13 +70,40 @@ async function extractDocx(bytes: Uint8Array) {
   };
 }
 
+async function extractPdf(bytes: Uint8Array) {
+  const [{ text }, { links: hrefs }] = await Promise.all([
+    extractText(bytes.slice(), { mergePages: true }),
+    extractLinks(bytes.slice()),
+  ]);
+  const raw = text.trim();
+  const fromPdf = hrefs
+    .map((href) => toResumeLink(href, href))
+    .filter((link): link is ResumeLink => Boolean(link));
+
+  return {
+    text: raw,
+    links: mergeLinks([fromPdf, linksFromText(raw)]),
+  };
+}
+
 export async function extractResumeDocument(fileName: string, bytes: Uint8Array) {
   assertResumeFile(fileName, bytes.byteLength);
-  assertFileSignature(bytes);
+  const extension = extensionOf(fileName);
+  let extracted;
+  if (extension === ".pdf") {
+    assertPdfSignature(bytes);
+    extracted = await extractPdf(bytes);
+  } else {
+    assertDocxSignature(bytes);
+    extracted = await extractDocx(bytes);
+  }
 
-  const extracted = await extractDocx(bytes);
   if (!extracted.text) {
-    throw new Error("We could not read any text from that file.");
+    throw new Error(
+      extension === ".pdf"
+        ? "This PDF has no selectable text."
+        : "We could not read any text from that file.",
+    );
   }
 
   return {

@@ -20,6 +20,7 @@ export function PreviewFrame({
   title,
   tag,
   fresh,
+  badge,
   image,
   logo,
   external = true,
@@ -28,6 +29,7 @@ export function PreviewFrame({
   title: string;
   tag: string;
   fresh?: boolean;
+  badge?: string;
   image?: string | null;
   logo?: string | null;
   external?: boolean;
@@ -70,6 +72,17 @@ export function PreviewFrame({
         <span className="absolute left-3 top-3 rounded-[6px] border border-gold/85 bg-card/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
           New
         </span>
+      ) : null}
+      {badge ? (
+        photo ? (
+          <span className="absolute right-3 top-3 rounded-[6px] border border-gold/85 bg-card/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+            {badge}
+          </span>
+        ) : (
+          <span className="absolute right-3 top-3 rounded-[6px] bg-forest-soft px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-forest">
+            {badge}
+          </span>
+        )
       ) : null}
       <span className="absolute inset-x-0 bottom-0 p-4">
         <span

@@ -50,3 +50,14 @@ export function repoTitle(fullName: string) {
 export function ycCompanyUrl(ycSlug: string) {
   return `https://www.ycombinator.com/companies/${encodeURIComponent(ycSlug)}`;
 }
+
+export function ossRepoPath(id: string) {
+  return `/open-source/${encodeURIComponent(id)}`;
+}
+
+export function isRecentPush(date: Date | null, withinDays = 14) {
+  if (!date) {
+    return false;
+  }
+  return Date.now() - date.getTime() < withinDays * DAY;
+}

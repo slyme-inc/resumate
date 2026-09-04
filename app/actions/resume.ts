@@ -7,7 +7,14 @@ import { saveUserResume } from "@/lib/db/resume";
 import { saveResumeFile } from "@/lib/db/resume-file";
 import { heuristicStoredProfile } from "@/lib/profile/hydrate";
 import { feedCacheTag } from "@/lib/matching/feed";
-import { asDocxFileName, DOCX_CONTENT_TYPE, isDocxFileName } from "@/lib/resume/file-type";
+import {
+  asDocxFileName,
+  asPdfFileName,
+  DOCX_CONTENT_TYPE,
+  isDocxFileName,
+  isPdfFileName,
+  PDF_CONTENT_TYPE,
+} from "@/lib/resume/file-type";
 import { parseResumeFile, type ParsedResume } from "@/lib/resume/parse";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath, updateTag } from "next/cache";
@@ -27,13 +34,15 @@ async function requireUserId() {
   return typeof data?.claims?.sub === "string" ? data.claims.sub : null;
 }
 
-async function storeDocx(
+async function storeResume(
   userId: string,
   file: File,
   options: { extractProfile: boolean },
 ): Promise<ParseResumeResult> {
-  if (!isDocxFileName(file.name)) {
-    return { ok: false, error: "Use a Word (.docx) file." };
+  const pdf = isPdfFileName(file.name);
+  const docx = isDocxFileName(file.name);
+  if (!pdf && !docx) {
+    return { ok: false, error: "Use a Word (.docx) or PDF file." };
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -52,9 +61,11 @@ async function storeDocx(
     await saveUserProfile(userId, profile);
   }
 
+  const contentType = pdf ? PDF_CONTENT_TYPE : DOCX_CONTENT_TYPE;
+  const fileName = pdf ? asPdfFileName(file.name) : asDocxFileName(file.name);
   const updatedAt = await saveResumeFile(userId, {
-    fileName: asDocxFileName(file.name),
-    contentType: DOCX_CONTENT_TYPE,
+    fileName,
+    contentType,
     bytes,
   });
 
@@ -67,7 +78,7 @@ async function storeDocx(
     ok: true,
     resume,
     fileVersion: String(updatedAt.getTime()),
-    contentType: DOCX_CONTENT_TYPE,
+    contentType,
   };
 }
 
@@ -79,15 +90,11 @@ export async function parseResumeAction(formData: FormData): Promise<ParseResume
 
   const file = formData.get("resume");
   if (!(file instanceof File)) {
-    return { ok: false, error: "Choose a Word (.docx) file." };
-  }
-
-  if (file.type && /^(image|text|audio|video|application\/pdf)\//.test(file.type)) {
-    return { ok: false, error: "Use a Word (.docx) file." };
+    return { ok: false, error: "Choose a Word (.docx) or PDF file." };
   }
 
   try {
-    return await storeDocx(userId, file, { extractProfile: true });
+    return await storeResume(userId, file, { extractProfile: true });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "We could not read that résumé.";
@@ -107,7 +114,27 @@ export async function saveResumeDocxAction(formData: FormData): Promise<ParseRes
   }
 
   try {
-    return await storeDocx(userId, file, { extractProfile: false });
+    return await storeResume(userId, file, { extractProfile: false });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "We could not save those edits.";
+    return { ok: false, error: message };
+  }
+}
+
+export async function saveResumePdfAction(formData: FormData): Promise<ParseResumeResult> {
+  const userId = await requireUserId();
+  if (!userId) {
+    return { ok: false, error: "Sign in to save résumé edits." };
+  }
+
+  const file = formData.get("resume");
+  if (!(file instanceof File)) {
+    return { ok: false, error: "Nothing to save." };
+  }
+
+  try {
+    return await storeResume(userId, file, { extractProfile: false });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "We could not save those edits.";

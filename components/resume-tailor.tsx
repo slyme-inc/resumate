@@ -7,7 +7,7 @@ import type {
   ResumeHintAnchor,
 } from "@/app/home/docx-editor";
 import type { OpportunityInsight } from "@/lib/ai/types";
-import { asDocxFileName } from "@/lib/resume/file-type";
+import { asResumeFileName, isPdfContentType } from "@/lib/resume/file-type";
 import {
   attachSuggestions,
   flattenResume,
@@ -75,26 +75,38 @@ export function ResumeTailor({
     setSynced(false);
   }, [hintKey]);
 
+  const isPdf = isPdfContentType(contentType);
+
   function exportBaseName() {
     const slug = company
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 48);
-    const base = asDocxFileName(resume.fileName).replace(/\.docx$/i, "");
+    const base = asResumeFileName(resume.fileName, contentType).replace(/\.(docx|pdf)$/i, "");
     return slug ? `${base}-${slug}` : base;
   }
 
   async function onDownload() {
     setExportError(null);
-    setBusy("docx");
+    setBusy(isPdf ? "pdf" : "docx");
     try {
-      await editorApi.current?.exportDocx({
-        download: true,
-        fileName: exportBaseName(),
-      });
+      if (isPdf) {
+        const blob = await editorApi.current?.exportPdf({
+          download: true,
+          fileName: exportBaseName(),
+        });
+        if (!blob) {
+          setExportError("The résumé is still loading.");
+        }
+      } else {
+        await editorApi.current?.exportDocx({
+          download: true,
+          fileName: exportBaseName(),
+        });
+      }
     } catch {
-      setExportError("We could not download the Word file.");
+      setExportError(isPdf ? "We could not download the PDF." : "We could not download the Word file.");
     } finally {
       setBusy(null);
     }
@@ -123,7 +135,9 @@ export function ResumeTailor({
     ? "Finding suggested edits…"
     : suggestionCount > 0
       ? `${suggestionCount} suggested edit${suggestionCount === 1 ? "" : "s"} in the document — tick to apply, cross to skip`
-      : "Edit the original Word file, then download";
+      : isPdf
+        ? "Edit the original PDF, then download"
+        : "Edit the original Word file, then download";
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
@@ -140,15 +154,17 @@ export function ResumeTailor({
           ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => void onExportPdf()}
-            disabled={busy !== null}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border border-line-strong bg-card px-3 py-2 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-paper disabled:opacity-60"
-          >
-            <FilePdf size={16} weight="bold" />
-            {busy === "pdf" ? "Exporting…" : "Export PDF"}
-          </button>
+          {isPdf ? null : (
+            <button
+              type="button"
+              onClick={() => void onExportPdf()}
+              disabled={busy !== null}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border border-line-strong bg-card px-3 py-2 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-paper disabled:opacity-60"
+            >
+              <FilePdf size={16} weight="bold" />
+              {busy === "pdf" ? "Exporting…" : "Export PDF"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => void onDownload()}
@@ -156,7 +172,7 @@ export function ResumeTailor({
             className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] bg-forest px-3 py-2 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 hover:bg-forest-bright disabled:opacity-60"
           >
             <DownloadSimple size={16} weight="bold" />
-            {busy === "docx" ? "Downloading…" : "Download"}
+            {busy === "docx" || (isPdf && busy === "pdf") ? "Downloading…" : isPdf ? "Download PDF" : "Download"}
           </button>
         </div>
       </div>
@@ -165,7 +181,7 @@ export function ResumeTailor({
         key={fileSrc ?? "none"}
         fileSrc={fileSrc}
         contentType={contentType}
-        fileName={asDocxFileName(resume.fileName)}
+        fileName={asResumeFileName(resume.fileName, contentType)}
         hints={hints}
         loading={loading}
         onApi={(api) => {
@@ -282,8 +298,12 @@ function HintedDocument({
         return;
       }
       const scroller =
-        root.querySelector<HTMLElement>(".superdoc-editor-container") ?? root;
-      const page = root.querySelector<HTMLElement>(".superdoc-page");
+        root.querySelector<HTMLElement>(".superdoc-editor-container") ??
+        root.querySelector<HTMLElement>(".resume-pdf-scroller") ??
+        root;
+      const page =
+        root.querySelector<HTMLElement>(".superdoc-page") ??
+        root.querySelector<HTMLElement>(".resume-pdf-page");
       const view = scroller.getBoundingClientRect();
       const pageBox = page?.getBoundingClientRect();
       const measured = editor.getHintRects(pendingRef.current, scroller);
@@ -334,7 +354,7 @@ function HintedDocument({
         return;
       }
       if (!api) {
-        onErrorRef.current("The Word file is still loading.");
+        onErrorRef.current("The résumé is still loading.");
         return;
       }
       const ok = await api.acceptHint(anchor);
@@ -343,11 +363,11 @@ function HintedDocument({
           pendingRef.current.filter((item) => item.key !== anchor.key),
         );
       } else {
-        onErrorRef.current("We could not apply that edit in the Word file.");
+        onErrorRef.current("We could not apply that edit.");
       }
     } catch {
       if (decision === "accept") {
-        onErrorRef.current("We could not apply that edit in the Word file.");
+        onErrorRef.current("We could not apply that edit.");
       }
     } finally {
       setBusyHint(null);
