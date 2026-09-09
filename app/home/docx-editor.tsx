@@ -57,6 +57,7 @@ const EDITOR_UI = {
 
 const EDITOR_VIEW = { layout: "print" as const };
 const EDITOR_ZOOM = { mode: "manual" as const, initial: 100 };
+const EDITOR_FONTS = { resolveAssetUrl: superdocFonts.resolveAssetUrl };
 const EDITOR_INTERACTION = { trackedChanges: { allowDecisions: true } };
 const EDITOR_STYLE = { height: "100%", minWidth: 0, maxWidth: "100%", overflow: "hidden" };
 
@@ -212,7 +213,7 @@ export function DocxEditor({
           contained
           viewOptions={EDITOR_VIEW}
           zoom={EDITOR_ZOOM}
-          fonts={superdocFonts}
+          fonts={EDITOR_FONTS}
           ui={EDITOR_UI}
           user={EDITOR_USER}
           modules={EDITOR_MODULES}
