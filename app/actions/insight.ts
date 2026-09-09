@@ -3,7 +3,7 @@
 import { generateOpportunityInsight } from "@/lib/ai/opportunity";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { getInsight, saveInsight } from "@/lib/db/insight";
-import { getJob } from "@/lib/db/jobs";
+import { getAccessibleJob } from "@/lib/db/jobs";
 import { getUserResumeAndProfile } from "@/lib/db/profile";
 import { getStoredRoleCard } from "@/lib/db/role-card";
 import { normalizeJob } from "@/lib/matching/job";
@@ -31,7 +31,7 @@ export async function loadOpportunityInsightAction(
 
   const [{ resume, profile: stored }, row, storedCard] = await Promise.all([
     getUserResumeAndProfile(userId),
-    getJob(source, id),
+    getAccessibleJob(userId, source, id),
     getStoredRoleCard(source, id),
   ]);
 

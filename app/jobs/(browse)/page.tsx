@@ -172,6 +172,12 @@ async function JobsFeed({
           <p className="text-[15px] leading-relaxed text-muted">
             No roles matched these filters. Try widening the work mode or clearing the search.
           </p>
+          <Link
+            href="/jobs/paste"
+            className="mt-5 inline-block text-sm font-semibold tracking-tight text-forest hover:underline"
+          >
+            Or paste a job description
+          </Link>
         </div>
       ) : (
         <div className="mt-4 space-y-4">
@@ -213,13 +219,23 @@ export default function JobsPage(props: PageProps<"/jobs">) {
     <div className="flex min-h-dvh flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
-        <h1 className="font-serif text-4xl font-medium tracking-tight text-ink">
-          Roles ranked to you
-        </h1>
-        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-          Scored against required vs preferred skills on each posting, then reranked with Gemini on
-          the shortlist.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 max-w-2xl">
+            <h1 className="font-serif text-4xl font-medium tracking-tight text-ink">
+              Roles ranked to you
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted">
+              Scored against required vs preferred skills on each posting, then reranked with Gemini
+              on the shortlist.
+            </p>
+          </div>
+          <Link
+            href="/jobs/paste"
+            className="rounded-[10px] border border-line-strong px-4 py-2.5 text-sm font-semibold tracking-tight text-ink transition-colors duration-150 hover:bg-card"
+          >
+            Paste a job description
+          </Link>
+        </div>
 
         <Suspense fallback={<JobsSessionSkeleton />}>
           <JobsSession searchParams={props.searchParams} />

@@ -1,6 +1,7 @@
 import { ScoreBadge } from "@/components/match-score";
 import { SaveButton } from "@/components/save-button";
 import { formatSalary, freshness, shortLocation } from "@/lib/format";
+import { isCustomJobSource } from "@/lib/matching/custom-job";
 import type { JobListItem } from "@/lib/matching/feed";
 import { skillLabel, SENIORITY_LABELS } from "@/lib/matching/taxonomy";
 import Link from "next/link";
@@ -88,7 +89,11 @@ export function JobCard({
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <span className="font-mono text-[11px] text-faint">
-              {posted ? posted.label : "Date not listed"}
+              {isCustomJobSource(job.source)
+                ? "Pasted by you"
+                : posted
+                  ? posted.label
+                  : "Date not listed"}
               {posted?.stale ? " · may be closed" : ""}
             </span>
             <div className="flex items-center gap-2">

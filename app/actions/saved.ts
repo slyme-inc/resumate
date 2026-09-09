@@ -2,6 +2,7 @@
 
 import { requireUserId } from "@/lib/auth/session";
 import { saveJob, unsaveJob } from "@/lib/db/jobs";
+import { isCustomJobSource, ownsCustomJob } from "@/lib/matching/custom-job";
 import { revalidatePath } from "next/cache";
 
 export type ToggleSavedInput = {
@@ -18,6 +19,10 @@ export async function toggleSavedAction({
   saved,
 }: ToggleSavedInput) {
   const userId = await requireUserId();
+
+  if (isCustomJobSource(source) && !ownsCustomJob(userId, id)) {
+    throw new Error("That pasted role was not found.");
+  }
 
   if (saved) {
     await unsaveJob(userId, source, id);

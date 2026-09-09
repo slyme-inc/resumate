@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { fundingRound, job } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { CUSTOM_JOB_SOURCE } from "@/lib/matching/custom-job";
+import { and, eq, ne, sql } from "drizzle-orm";
 
 export type CompanyIntel = {
   company: string;
@@ -72,7 +73,7 @@ export async function countOpenRoles(company: string, ycSlug: string | null) {
     const [bySlug] = await getDb()
       .select({ count: sql<number>`count(*)::int` })
       .from(job)
-      .where(eq(job.ycSlug, ycSlug));
+      .where(and(eq(job.ycSlug, ycSlug), ne(job.source, CUSTOM_JOB_SOURCE)));
     if ((bySlug?.count ?? 0) > 0) {
       return bySlug.count;
     }
@@ -85,7 +86,7 @@ export async function countOpenRoles(company: string, ycSlug: string | null) {
   const [byName] = await getDb()
     .select({ count: sql<number>`count(*)::int` })
     .from(job)
-    .where(eq(job.company, company));
+    .where(and(eq(job.company, company), ne(job.source, CUSTOM_JOB_SOURCE)));
 
   return byName?.count ?? 0;
 }

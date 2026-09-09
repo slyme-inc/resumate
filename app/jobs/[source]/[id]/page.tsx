@@ -7,11 +7,12 @@ import { CompanyIntelSkeleton } from "@/components/skeletons";
 import { extractRoleCardWithGemini } from "@/lib/ai/role-card";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { requireResume } from "@/lib/auth/session";
-import { getJob, listSavedKeys } from "@/lib/db/jobs";
+import { getAccessibleJob, listSavedKeys } from "@/lib/db/jobs";
 import { getUserResumeAndProfile } from "@/lib/db/profile";
 import { getResumeFileMeta } from "@/lib/db/resume-file";
 import { getStoredRoleCard, saveRoleCard } from "@/lib/db/role-card";
 import { formatSalary, freshness } from "@/lib/format";
+import { isCustomJobSource } from "@/lib/matching/custom-job";
 import { jobKey, normalizeJob } from "@/lib/matching/job";
 import { scoreJob } from "@/lib/matching/score";
 import { ROLE_LABELS, SENIORITY_LABELS, skillLabel } from "@/lib/matching/taxonomy";
@@ -91,7 +92,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
   const decodedId = decodeURIComponent(id);
 
   const [row, stored, savedKeys, storedCard, fileMeta] = await Promise.all([
-    getJob(decodedSource, decodedId),
+    getAccessibleJob(userId, decodedSource, decodedId),
     getUserResumeAndProfile(userId),
     listSavedKeys(userId),
     getStoredRoleCard(decodedSource, decodedId),
@@ -130,7 +131,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
   }
   const saved = savedKeys.has(jobKey(job.source, job.id));
 
-  const posted = freshness(job.date);
+  const posted = isCustomJobSource(job.source) ? null : freshness(job.date);
   const salary = formatSalary(job.salaryMin, job.salaryMax);
   const paragraphs = job.description ? toParagraphs(job.description).slice(0, 40) : [];
   const applyHref = job.applyUrl || job.url;
@@ -142,7 +143,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
     ["Focus", ROLE_LABELS[job.role]],
     ["Experience asked", job.requiredYears !== null ? `${job.requiredYears}+ years` : "Not stated"],
     ["Salary", salary ?? "Not listed"],
-    ["Source", job.source],
+    ["Source", isCustomJobSource(job.source) ? "Pasted by you" : job.source],
   ] as const;
 
   return (
@@ -196,7 +197,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[source]/[id
                 rel="noreferrer"
                 className="rounded-[10px] bg-forest px-4 py-3 text-sm font-semibold tracking-tight text-paper transition-colors duration-150 hover:bg-forest-bright"
               >
-                Apply
+                {isCustomJobSource(job.source) ? "View posting" : "Apply"}
               </a>
             ) : null}
           </div>

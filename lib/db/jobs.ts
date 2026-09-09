@@ -1,9 +1,27 @@
 import { getDb } from "@/lib/db";
 import { job, jobRoleCard, savedJob } from "@/lib/db/schema";
+import {
+  CUSTOM_JOB_SOURCE,
+  isCustomJobSource,
+  ownsCustomJob,
+  type CustomJobDraft,
+} from "@/lib/matching/custom-job";
 import type { JobRow, JobScoreRow } from "@/lib/matching/job";
 import { isRoleCard } from "@/lib/matching/role-card";
-import { and, desc, eq, sql, type SQL } from "drizzle-orm";
+import { htmlToText } from "@/lib/matching/text";
+import { createHash } from "node:crypto";
+import { and, desc, eq, like, ne, sql, type SQL } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
+
+function customJobId(userId: string, description: string) {
+  const hash = createHash("sha256")
+    .update(userId)
+    .update("\n")
+    .update(htmlToText(description).toLowerCase())
+    .digest("hex")
+    .slice(0, 20);
+  return `${userId}:${hash}`;
+}
 
 /** Must mirror `job_search_idx` exactly for the index to be used. */
 const SEARCH_VECTOR = sql`to_tsvector('english', coalesce(${job.position}, '') || ' ' || coalesce(${job.company}, '') || ' ' || coalesce(${job.description}, ''))`;
@@ -56,6 +74,8 @@ async function queryJobPool({
 
   if (source) {
     conditions.push(eq(job.source, source));
+  } else {
+    conditions.push(ne(job.source, CUSTOM_JOB_SOURCE));
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -132,11 +152,96 @@ export async function getJob(source: string, id: string): Promise<JobRow | null>
   return row ?? null;
 }
 
+/** Pasted roles are private to the user who submitted them. */
+export async function getAccessibleJob(
+  userId: string,
+  source: string,
+  id: string,
+): Promise<JobRow | null> {
+  const row = await getJob(source, id);
+  if (!row) {
+    return null;
+  }
+  if (isCustomJobSource(row.source) && !ownsCustomJob(userId, row.id)) {
+    return null;
+  }
+  return row;
+}
+
+export async function upsertCustomJob(userId: string, draft: CustomJobDraft) {
+  const id = customJobId(userId, draft.description);
+  const now = new Date();
+
+  await getDb()
+    .insert(job)
+    .values({
+      source: CUSTOM_JOB_SOURCE,
+      id,
+      company: draft.company,
+      position: draft.position,
+      tags: draft.tags,
+      description: draft.description,
+      location: draft.location,
+      applyUrl: draft.url,
+      url: draft.url,
+      date: now,
+      crawledAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [job.source, job.id],
+      set: {
+        company: draft.company,
+        position: draft.position,
+        tags: draft.tags,
+        description: draft.description,
+        location: draft.location,
+        applyUrl: draft.url,
+        url: draft.url,
+        crawledAt: now,
+      },
+    });
+
+  return { source: CUSTOM_JOB_SOURCE, id };
+}
+
+export async function listCustomJobs(userId: string): Promise<JobScoreRow[]> {
+  const rows = await getDb()
+    .select({
+      source: job.source,
+      id: job.id,
+      slug: job.slug,
+      company: job.company,
+      companyLogo: job.companyLogo,
+      logo: job.logo,
+      position: job.position,
+      tags: job.tags,
+      description: job.description,
+      location: job.location,
+      applyUrl: job.applyUrl,
+      url: job.url,
+      date: job.date,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      roleCard: jobRoleCard.card,
+    })
+    .from(job)
+    .leftJoin(jobRoleCard, and(eq(job.source, jobRoleCard.source), eq(job.id, jobRoleCard.id)))
+    .where(and(eq(job.source, CUSTOM_JOB_SOURCE), like(job.id, `${userId}:%`)))
+    .orderBy(desc(job.date))
+    .limit(12);
+
+  return rows.map((row) => ({
+    ...row,
+    roleCard: isRoleCard(row.roleCard) ? row.roleCard : null,
+  }));
+}
+
 const loadSources = unstable_cache(
   async () => {
     return getDb()
       .select({ source: job.source, count: sql<number>`count(*)::int` })
       .from(job)
+      .where(ne(job.source, CUSTOM_JOB_SOURCE))
       .groupBy(job.source)
       .orderBy(desc(sql`count(*)`));
   },
@@ -150,7 +255,10 @@ export function listSources() {
 
 const loadJobCount = unstable_cache(
   async () => {
-    const [row] = await getDb().select({ count: sql<number>`count(*)::int` }).from(job);
+    const [row] = await getDb()
+      .select({ count: sql<number>`count(*)::int` })
+      .from(job)
+      .where(ne(job.source, CUSTOM_JOB_SOURCE));
     return row?.count ?? 0;
   },
   ["job-count"],

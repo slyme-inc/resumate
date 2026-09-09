@@ -174,9 +174,14 @@ export function JobsFeedSkeleton() {
     <Themed>
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading matches</span>
-      <Skeleton width={280} height={36} />
-      <div className="mt-3 max-w-2xl">
-        <Skeleton count={2} height={14} className="mb-2" />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 max-w-2xl flex-1">
+          <Skeleton width={280} height={36} />
+          <div className="mt-3">
+            <Skeleton count={2} height={14} className="mb-2" />
+          </div>
+        </div>
+        <Skeleton width={188} height={42} borderRadius={10} />
       </div>
       <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
         <Skeleton height={42} />
@@ -219,6 +224,23 @@ export function JobsSessionSkeleton() {
         </div>
       </div>
       <JobsListSkeleton />
+    </Themed>
+  );
+}
+
+export function PasteJobSkeleton() {
+  return (
+    <Themed>
+      <div aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading paste form</span>
+        <Skeleton width={320} height={36} />
+        <div className="mt-3 max-w-2xl">
+          <Skeleton count={2} height={14} className="mb-2" />
+        </div>
+        <div className="mt-8 rounded-[14px] border border-line bg-card p-5">
+          <Skeleton height={288} />
+        </div>
+      </div>
     </Themed>
   );
 }
